@@ -1,0 +1,1644 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ラストオーダー</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=DotGothic16&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+/* Layout: one-screen visual novel — HUD / stage with heroine / dialogue box. Deliberately single night theme. */
+:root{
+  --night:#161927;
+  --panel:#20243a;
+  --panel-2:#2a2f4a;
+  --ink:#f3ece0;
+  --muted:#a9a7ba;
+  --lantern:#f0b35c;
+  --rose:#ee7f99;
+  --teal:#72c7b6;
+  --bad:#ea6b5c;
+  --line:rgba(243,236,224,.14);
+  --f-display:"Dela Gothic One","Hiragino Sans","Yu Gothic",sans-serif;
+  --f-body:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic","Meiryo",sans-serif;
+  --f-pixel:"DotGothic16","Zen Kaku Gothic New",monospace;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--night);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.75}
+*{box-sizing:border-box}
+button{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible{outline:2px solid var(--lantern);outline-offset:2px}
+
+.app{max-width:760px;margin:0 auto;padding-inline:16px;padding-block:16px;min-height:100%;display:flex;flex-direction:column;gap:12px}
+
+/* HUD */
+.hud{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;font-family:var(--f-pixel);font-size:13px}
+.hud .chapter{color:var(--lantern);letter-spacing:.08em;flex:1 1 auto;min-width:0}
+.hud .lvl{color:var(--muted);margin-right:8px}
+.meter{display:flex;align-items:center;gap:8px;position:relative}
+.meter .lbl{color:var(--muted);letter-spacing:.06em}
+.bar{width:100px;height:8px;background:var(--panel-2);border-radius:4px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;transition:width .6s ease}
+.m-aff .bar i{background:var(--rose)}
+.m-tr .bar i{background:var(--teal)}
+.meter .num{font-variant-numeric:tabular-nums;min-width:2.2em;text-align:right}
+.meter.masked .bar{opacity:.35}
+.meter.masked .num{color:var(--muted)}
+.counter b{color:var(--lantern);font-weight:400;font-variant-numeric:tabular-nums}
+.pop{position:absolute;right:0;top:-18px;font-size:13px;font-weight:700;pointer-events:none;animation:pop 1.4s ease forwards}
+.pop.up{color:var(--teal)} .pop.down{color:var(--bad)}
+@keyframes pop{0%{opacity:0;transform:translateY(6px)}15%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0;transform:translateY(-8px)}}
+
+/* Stage */
+.stage{position:relative;height:clamp(300px,56vh,500px);border-radius:14px;overflow:hidden;border:1px solid var(--line);transition:background .8s}
+.stage .place{position:absolute;left:12px;top:10px;font-family:var(--f-pixel);font-size:12px;letter-spacing:.1em;background:rgba(10,12,20,.55);color:var(--ink);padding:2px 10px;border-radius:999px;z-index:2}
+.bg-room{background:radial-gradient(circle at 78% 30%,rgba(240,179,92,.35),transparent 30%),linear-gradient(180deg,#2b2a44 0%,#1c1b2e 70%,#141322 100%)}
+.bg-izakaya{background:radial-gradient(circle at 15% 22%,rgba(240,120,70,.75) 0 22px,transparent 23px),radial-gradient(circle at 85% 22%,rgba(240,120,70,.75) 0 22px,transparent 23px),radial-gradient(circle at 50% 120%,rgba(240,179,92,.45),transparent 60%),linear-gradient(180deg,#4a2c25 0%,#2c1b1a 100%)}
+.bg-cafe{background:repeating-linear-gradient(90deg,rgba(0,0,0,.07) 0 2px,transparent 2px 60px),radial-gradient(circle at 70% 20%,rgba(255,230,190,.55),transparent 45%),linear-gradient(180deg,#8a6a4f 0%,#5b4232 100%)}
+.bg-bar{background:radial-gradient(circle at 20% 15%,rgba(240,179,92,.5) 0 6px,transparent 7px),radial-gradient(circle at 45% 12%,rgba(240,179,92,.5) 0 6px,transparent 7px),radial-gradient(circle at 70% 15%,rgba(240,179,92,.5) 0 6px,transparent 7px),linear-gradient(180deg,#3a1f2c 0%,#24131d 75%,#5a3322 75%,#3d2218 100%)}
+.bg-street{background:radial-gradient(circle at 18% 30%,rgba(255,214,140,.6) 0 5px,rgba(255,214,140,.12) 6px 50px,transparent 51px),radial-gradient(circle at 82% 38%,rgba(255,214,140,.6) 0 5px,rgba(255,214,140,.12) 6px 50px,transparent 51px),linear-gradient(180deg,#0f1530 0%,#1d2547 70%,#262b3e 100%)}
+.bg-park{background:radial-gradient(circle at 50% 95%,rgba(255,170,110,.85),transparent 45%),linear-gradient(180deg,#43407a 0%,#b46d7a 65%,#e8a07a 100%)}
+.bg-morning{background:linear-gradient(100deg,transparent 0 30%,rgba(255,248,225,.35) 30% 38%,transparent 38% 100%),linear-gradient(180deg,#c9d4e6 0%,#e9dfd2 100%)}
+.bg-phone{background:radial-gradient(ellipse at 50% 60%,rgba(114,199,182,.25),transparent 55%),linear-gradient(180deg,#1b2238 0%,#121626 100%)}
+.bg-yakiniku{background:radial-gradient(circle at 50% 110%,rgba(255,110,60,.7),transparent 50%),repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 3px,transparent 3px 18px),linear-gradient(180deg,#5a2f22 0%,#33190f 100%)}
+.bg-black{background:#07080d}
+
+.her{position:absolute;left:50%;bottom:0;transform:translateX(-50%);height:100%;width:auto;transition:opacity .4s,transform .4s}
+.her.hide{opacity:0;transform:translateX(-50%) translateY(10px)}
+
+/* Dialogue */
+.box{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 18px 16px;min-height:150px;display:flex;flex-direction:column;gap:12px}
+.name{position:absolute;top:-13px;left:14px;background:var(--lantern);color:#2a1a08;font-weight:700;font-size:14px;padding:1px 14px;border-radius:6px;letter-spacing:.06em}
+.name.narr{background:var(--panel-2);color:var(--muted)}
+.name.me{background:var(--teal);color:#0f2620}
+.text{font-size:17px;min-height:3.5em;white-space:pre-wrap;cursor:pointer}
+.text.narr{color:#d8d3e3}
+.hint{align-self:flex-end;font-family:var(--f-pixel);font-size:12px;color:var(--muted);animation:blink 1.2s steps(2) infinite}
+@keyframes blink{50%{opacity:.2}}
+
+.choices{display:flex;flex-direction:column;gap:8px}
+.choice{display:flex;gap:12px;align-items:flex-start;text-align:left;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:10px 14px;cursor:pointer;line-height:1.6;transition:border-color .15s,background .15s,transform .15s}
+.choice:hover{border-color:var(--lantern);background:#323858}
+.choice:active{transform:scale(.99)}
+.choice .k{font-family:var(--f-pixel);color:var(--lantern);flex:0 0 auto}
+.choice span:last-child{min-width:0}
+
+.coach{border-radius:10px;padding:12px 14px;background:var(--night);border:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.coach .head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;font-family:var(--f-pixel);font-size:13px}
+.grade{padding:1px 10px;border-radius:999px;font-weight:700;color:#1a1420}
+.g-good{background:var(--teal)} .g-ok{background:var(--lantern)} .g-bad{background:var(--bad)}
+.coach .delta{color:var(--muted);font-variant-numeric:tabular-nums}
+.coach p{margin:0;font-size:15px;line-height:1.8}
+.coach .tag{font-family:var(--f-pixel);color:var(--muted);font-size:12px;letter-spacing:.1em}
+.next{align-self:flex-end;background:var(--lantern);color:#2a1a08;border:0;border-radius:8px;padding:8px 20px;font-weight:700;cursor:pointer}
+.next:hover{filter:brightness(1.08)}
+
+/* Title */
+.title{display:flex;flex-direction:column;gap:22px;padding-block:24px}
+.title .eyebrow{font-family:var(--f-pixel);color:var(--lantern);letter-spacing:.2em;font-size:13px}
+.title h1{font-family:var(--f-display);font-weight:400;font-size:clamp(46px,12vw,88px);line-height:1.05;margin:0;letter-spacing:.02em;text-wrap:balance}
+.title h1 em{font-style:normal;color:var(--rose)}
+.title .lead{margin:0;max-width:34em;color:#ddd6e6}
+.clock{font-family:var(--f-pixel);font-size:14px;color:var(--muted);margin:0}
+.clock b{color:var(--lantern);font-weight:400}
+.namebox{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);max-width:14em}
+.namebox input{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 12px;color:var(--ink);font:inherit;font-size:16px}
+.levels{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.lv{--c:var(--teal);display:flex;flex-direction:column;gap:6px;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px 12px;cursor:pointer;transition:border-color .15s,transform .15s,background .15s}
+.lv:hover{border-color:var(--c);background:#262a44;transform:translateY(-2px)}
+.lv .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-family:var(--f-pixel);font-size:13px}
+.lv .tier{color:var(--c);letter-spacing:.12em}
+.lv .stars{color:var(--c);letter-spacing:.1em}
+.lv h3{margin:0;font-family:var(--f-display);font-weight:400;font-size:22px;line-height:1.3}
+.lv .who{font-size:13px;color:var(--c)}
+.lv p{margin:0;font-size:14px;color:#d6d0e0;line-height:1.7}
+.lv .foot{display:flex;justify-content:space-between;gap:8px;margin-top:4px;padding-top:8px;border-top:1px solid var(--line);font-family:var(--f-pixel);font-size:12px;color:var(--muted)}
+.lv .foot b{color:var(--ink);font-weight:400;font-variant-numeric:tabular-nums}
+.lv-1{--c:var(--teal)} .lv-2{--c:var(--lantern)} .lv-3{--c:var(--rose)} .lv-4{--c:var(--bad)}
+.btn{background:var(--rose);color:#2a0f18;border:0;border-radius:8px;padding:10px 26px;font-weight:700;cursor:pointer;font-size:16px}
+.btn:hover{filter:brightness(1.07)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.note{font-size:13px;color:var(--muted);margin:0;max-width:44em}
+
+/* Ending */
+.ending{display:flex;flex-direction:column;gap:18px;padding-block:8px}
+.rank{font-family:var(--f-pixel);letter-spacing:.2em;font-size:14px}
+.ending h2{font-family:var(--f-display);font-weight:400;font-size:clamp(32px,8vw,52px);line-height:1.15;margin:0;text-wrap:balance}
+.ending .story p{margin:0 0 .8em;max-width:36em}
+.t-good .rank{color:var(--teal)} .t-normal .rank{color:var(--lantern)} .t-bad .rank,.t-over .rank{color:var(--bad)}
+.t-over h2{color:var(--bad)}
+.final{display:flex;flex-wrap:wrap;gap:12px 24px;font-family:var(--f-pixel);font-size:14px}
+.final b{font-weight:400;color:var(--lantern);font-variant-numeric:tabular-nums}
+.sec h3{font-family:var(--f-pixel);font-weight:400;font-size:14px;letter-spacing:.12em;color:var(--muted);margin:0 0 8px}
+.report{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.report li{display:grid;grid-template-columns:2.2em 7.5em 1fr;gap:10px;padding:8px 2px;border-bottom:1px solid var(--line);font-size:14px;align-items:baseline}
+.report .mk{font-family:var(--f-pixel);font-size:16px;text-align:center}
+.report .q{color:var(--muted);font-size:13px}
+.report .c{min-width:0}
+.report .why{grid-column:3;font-size:13px;color:var(--muted);line-height:1.7}
+.mk.good{color:var(--teal)} .mk.ok{color:var(--lantern)} .mk.bad{color:var(--bad)}
+.lessons{margin:0;padding-left:1.4em;display:flex;flex-direction:column;gap:6px;font-size:15px}
+.lessons b{color:var(--lantern);font-weight:700}
+.actions{display:flex;flex-wrap:wrap;gap:10px}
+
+@media (max-width:480px){
+  .bar{width:64px}
+  .levels{grid-template-columns:1fr}
+  .report li{grid-template-columns:2em 1fr}
+  .report .c,.report .why{grid-column:2}
+  .text{font-size:16px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+
+<script>
+(function(){
+// ============================================================
+// Characters
+// ============================================================
+const WHO = {N:'', H:'{name}', A:'灯', K:'健太', S:'沙耶', R:'玲', M:'美咲', Y:'由佳', T:'タク'};
+
+// ---- PORTRAIT START ----
+// Heroine portraits: layered SVG (hair, skin, outfit, anime-style eyes and lips), redrawn per expression.
+function shade(hex, p){
+  const n = parseInt(hex.slice(1),16); let r=n>>16, g=n>>8&255, b=n&255;
+  const t = p>0?255:0, k = Math.abs(p);
+  r=Math.round(r+(t-r)*k); g=Math.round(g+(t-g)*k); b=Math.round(b+(t-b)*k);
+  return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
+}
+
+const HAIR = {
+  bob:{
+    back:'M50 102 C44 60 66 34 100 34 C134 34 156 60 150 102 C152 128 156 150 148 166 C138 162 130 154 128 142 L72 142 C70 154 62 162 52 166 C44 150 48 128 50 102 Z',
+    bangs:'M56 104 C52 62 74 42 100 42 C126 42 148 62 144 104 C140 90 134 80 127 72 C125 84 118 91 109 95 C112 85 112 76 108 68 C100 81 87 90 72 95 C77 87 80 79 82 71 C72 81 62 92 56 104 Z',
+    front:'M58 100 C52 122 54 148 62 166 C68 152 70 128 66 106 Z M142 100 C148 122 146 148 138 166 C132 152 130 128 134 106 Z',
+    strands:'M100 45 Q95 64 86 84 M117 48 Q120 64 117 82 M80 52 Q72 66 66 84'},
+  long:{
+    back:'M46 102 C40 58 66 34 100 34 C134 34 160 58 154 102 L164 236 C144 242 126 238 114 228 L86 228 C74 238 56 242 36 236 Z',
+    bangs:'M56 110 C52 64 76 42 100 42 C124 42 148 62 144 108 C138 84 124 66 104 58 C108 70 104 82 96 90 C98 78 94 67 88 62 C76 72 62 88 56 110 Z',
+    front:'M58 104 C50 140 54 186 44 236 C58 234 66 210 68 178 C70 148 66 122 64 108 Z M142 104 C150 140 146 186 156 236 C142 234 134 210 132 178 C130 148 134 122 136 108 Z',
+    strands:'M103 46 Q113 60 120 78 M96 48 Q86 60 80 76 M144 120 Q148 170 150 220'},
+  short:{
+    back:'M50 104 C44 58 68 34 102 34 C136 34 158 58 150 104 C152 126 148 144 140 152 L62 152 C54 146 48 128 50 104 Z',
+    bangs:'M56 112 C50 66 74 40 106 40 C134 40 152 62 146 98 C140 78 130 64 120 58 C104 62 84 74 70 96 C66 104 60 110 56 112 Z',
+    front:'M58 100 C52 126 56 150 66 168 C70 148 68 124 66 106 Z M143 96 C147 110 147 124 143 134 C141 122 139 110 137 102 Z',
+    strands:'M119 46 Q97 56 79 82 M127 52 Q109 62 93 82 M110 44 Q90 52 72 74'},
+  wavy:{
+    back:'M44 102 C36 58 64 32 100 32 C136 32 164 58 156 102 C170 130 158 152 168 178 C176 202 160 224 150 234 C138 238 124 232 116 224 L84 224 C76 232 62 238 50 234 C40 224 24 202 32 178 C42 152 30 130 44 102 Z',
+    bangs:'M56 108 C52 64 76 40 102 40 C130 40 150 62 144 106 C138 82 124 64 104 58 C96 72 80 86 66 92 C62 98 58 104 56 108 Z',
+    front:'M60 102 C48 128 62 148 52 172 C44 192 56 210 50 230 C66 218 68 198 72 180 C76 160 64 142 70 124 C72 114 66 106 64 102 Z M140 102 C152 128 138 148 148 172 C156 192 144 210 150 230 C134 218 132 198 128 180 C124 160 136 142 130 124 C128 114 134 106 136 102 Z',
+    strands:'M104 44 Q96 58 84 76 M120 50 Q130 66 134 86 M58 140 Q66 160 58 180 M142 140 Q134 160 142 180'},
+  pony:{
+    back:'M52 102 C46 60 70 36 100 36 C130 36 154 60 148 102 C146 122 140 136 134 144 L66 144 C60 136 54 122 52 102 Z',
+    tail:'M134 56 C172 60 186 104 178 152 C172 184 160 204 150 214 C154 186 160 150 152 122 C148 102 142 86 132 74 Z',
+    bangs:'M56 104 C54 64 76 42 100 42 C124 42 146 62 144 104 C136 86 124 74 110 70 C112 80 108 88 100 92 C100 82 96 74 90 70 C76 76 64 88 56 104 Z',
+    front:'M60 100 C56 120 58 140 64 156 C64 138 64 120 63 104 Z M140 100 C144 120 142 140 136 156 C136 138 136 120 137 104 Z',
+    strands:'M100 44 Q101 58 100 72 M86 48 Q78 60 72 78 M160 90 Q168 130 160 180'}
+};
+
+// Body is drawn waist-up in a 200x320 viewBox: arms hang at the sides with a gap to the torso.
+const BODY = 'M89 146 L88 180 C72 184 56 188 46 198 C38 207 35 226 34 250 C33 272 33 296 35 320 L50 320 C50 300 51 282 52 264 C53 250 54 238 56 226 L58 226 C60 244 64 262 69 280 C70 294 66 306 62 320 L138 320 C134 306 130 294 131 280 C136 262 140 244 142 226 L144 226 C146 238 147 250 148 264 C149 282 150 300 150 320 L165 320 C167 296 167 272 166 250 C165 226 162 207 154 198 C144 188 128 184 112 180 L111 146 Z';
+const SLEEVE_L = 'M88 182 C72 185 56 189 46 198 C38 207 35 226 34 250 C33 272 33 296 35 320 L50 320 C50 300 51 282 52 264 C53 250 54 238 56 226';
+const SLEEVE_R = 'L144 226 C146 238 147 250 148 264 C149 282 150 300 150 320 L165 320 C167 296 167 272 166 250 C165 226 162 207 154 198 C144 189 128 185 112 182 Z';
+const BUST = (col)=>`<path d="M71 241 Q83 249 95 244 M105 244 Q117 249 129 241" fill="none" stroke="${col}" stroke-opacity=".3" stroke-width="1.2" stroke-linecap="round"/>`;
+const SKIRT_HI = 'M69 289 Q100 295 131 289 L146 320 L54 320 Z';
+const PANTS_HI = 'M69 289 Q100 295 131 289 L141 320 L59 320 Z';
+
+const OUTFIT = {
+  // 灯: cropped knit cardigan (long sleeves) + high-waist skirt
+  cardigan:(id,c)=>`<path d="M69 289 Q100 295 131 289 L148 320 L52 320 Z" fill="${c.bottom}"/>
+    <path d="M69 289 Q100 295 131 289" fill="none" stroke="${shade(c.bottom,-.25)}" stroke-width="2"/>
+    <path d="${SLEEVE_L} C59 244 62 258 63 266 Q100 274 137 266 C138 258 141 244 143 228 ${SLEEVE_R}" fill="url(#${id}cloth)"/>
+    <path d="M85 182 L100 224 L115 182 Z" fill="url(#${id}skin)"/>
+    ${BUST(shade(c.cloth,-.35))}
+    <path d="M85 182 L100 224 L115 182 M100 224 L100 270 M63 266 Q100 274 137 266" fill="none" stroke="${shade(c.cloth,.3)}" stroke-width="2"/>
+    <g fill="${shade(c.cloth,.45)}"><circle cx="103" cy="234" r="1.8"/><circle cx="103" cy="248" r="1.8"/><circle cx="103" cy="261" r="1.8"/></g>`,
+  // 沙耶: off-shoulder crop top + high-waist jeans
+  offcrop:(id,c,crop=266)=>`<path d="${PANTS_HI}" fill="${c.bottom}"/>
+    <path d="M69 289 Q100 295 131 289" fill="none" stroke="${shade(c.bottom,.25)}" stroke-width="2"/><circle cx="100" cy="294" r="1.6" fill="#d8c18a"/>
+    <path d="M36 214 C60 205 140 205 164 214 L166 238 C160 235 152 235 147 239 C144 250 141 ${crop-8} 139 ${crop} Q100 ${crop+8} 61 ${crop} C59 ${crop-8} 56 250 53 239 C48 235 40 235 32 238 Z" fill="url(#${id}cloth)"/>
+    ${BUST(shade(c.cloth,-.4))}
+    <path d="M36 214 C60 205 140 205 164 214" fill="none" stroke="${shade(c.cloth,.35)}" stroke-width="3.5" stroke-linecap="round"/>
+    <path d="M61 ${crop} Q100 ${crop+8} 139 ${crop}" fill="none" stroke="${shade(c.cloth,-.2)}" stroke-width="1.5"/>`,
+  // 美咲: off-shoulder short crop + low-rise mini skirt
+  minicrop:(id,c)=>`<path d="M66 298 Q100 304 134 298 L147 320 L53 320 Z" fill="${c.bottom}"/>
+    <path d="M66 298 Q100 304 134 298" fill="none" stroke="${shade(c.bottom,.3)}" stroke-width="2"/>`
+    + OUTFIT.offcrop(id,{...c,bottom:'none'},256).replace(/<path d="M69 289[^>]*>|<circle cx="100" cy="294"[^>]*>/g,''),
+  // 玲: black bandeau under an open burgundy satin shirt + leather pants
+  openshirt:(id,c)=>`<path d="${PANTS_HI}" fill="${c.bottom}"/>
+    <path d="M69 289 Q100 295 131 289" fill="none" stroke="#c9cad4" stroke-width="2.4"/><rect x="96" y="288" width="8" height="6" rx="1" fill="#c9cad4"/>
+    <path d="M60 228 Q100 238 140 228 L139 254 Q100 262 61 254 Z" fill="#141218"/>
+    <path d="M60 228 Q100 238 140 228" fill="none" stroke="#3a3540" stroke-width="1.5"/>
+    <path d="${SLEEVE_L} C58 242 60 256 62 270 L73 270 C77 242 82 212 88 186 Z" fill="url(#${id}cloth)"/>
+    <path d="M143 228 C142 242 140 256 138 270 L127 270 C123 242 118 212 112 186 L112 182 ${SLEEVE_R.replace(/^L144 226/,'M143 228 L144 226')}" fill="url(#${id}cloth)"/>
+    <path d="M88 182 L80 176 L86 198 Z M112 182 L120 176 L114 198 Z" fill="${shade(c.cloth,.2)}"/>
+    <path d="M73 270 C77 242 82 212 88 186 M127 270 C123 242 118 212 112 186" fill="none" stroke="${shade(c.cloth,.35)}" stroke-width="1.2"/>`,
+  // 由佳: knotted cropped blouse with puff sleeves + flared skirt
+  knot:(id,c)=>`<path d="${SKIRT_HI}" fill="${c.bottom}"/>
+    <path d="M69 289 Q100 295 131 289" fill="none" stroke="${shade(c.bottom,-.2)}" stroke-width="2"/>
+    <path d="M88 182 C72 185 54 189 44 198 C37 206 34 220 33 236 L50 238 C52 234 54 230 57 228 C59 244 62 258 63 266 Q100 274 137 266 C138 258 141 244 143 228 C146 230 148 234 150 238 L167 236 C166 220 163 206 156 198 C146 189 128 185 112 182 Z" fill="url(#${id}cloth)"/>
+    <path d="M90 182 L100 204 L110 182 Z" fill="url(#${id}skin)"/>
+    ${BUST(shade(c.cloth,-.3))}
+    <path d="M33 236 L50 238 M150 238 L167 236" stroke="${shade(c.cloth,-.2)}" stroke-width="1.5"/>
+    <path d="M100 268 L89 280 L95 266 Z M100 268 L111 280 L105 266 Z" fill="url(#${id}cloth)"/><circle cx="100" cy="268" r="3.4" fill="${shade(c.cloth,-.12)}"/>`
+};
+
+const CHARS = {
+  A:{name:'灯', style:'bob',  hair:'#4a2f2a', skin:'#f8e0cf', eye:'#8a5532', lip:'#d46f7c', cloth:'#9bb7a2', bottom:'#3e3a48', outfit:'cardigan',
+     ear:{type:'stud',color:'#f0c070'}},
+  S:{name:'沙耶', style:'long', hair:'#2a1f22', skin:'#f6dccb', eye:'#5a3a2c', lip:'#cc6672', cloth:'#f2ede6', bottom:'#4d6a96', outfit:'offcrop',
+     necklace:'#e2c27a'},
+  R:{name:'玲', style:'short', hair:'#18151d', skin:'#f4dccf', eye:'#5e3446', lip:'#a8243a', cloth:'#5a1f33', bottom:'#17161b', outfit:'openshirt', shadow:'#7a3050',
+     ear:{type:'drop',color:'#dcdde6'}, necklace:'#dcdde6', mole:true},
+  M:{name:'美咲', style:'wavy', hair:'#9a6644', skin:'#f8dfcc', eye:'#9c6a38', lip:'#de5c7a', cloth:'#d4506e', bottom:'#26252c', outfit:'minicrop', shadow:'#b0607a',
+     ear:{type:'hoop',color:'#f0c070'}, necklace:'#f0c070'},
+  Y:{name:'由佳', style:'pony', hair:'#4e3426', skin:'#f9e2d2', eye:'#6a4230', lip:'#e07e8c', cloth:'#f6f0e4', bottom:'#e7a3b6', outfit:'knot',
+     acc:'#e27d96', glasses:true}
+};
+
+// lid: how open the upper lid is (more negative = wider)
+const LID = {neutral:-10, smile:-9, blush:-6, smirk:-4, troubled:-11, cold:-3};
+
+function eyeSVG(x, mirror, lid, c, id){
+  const ink = shade(c.hair,-.45);
+  const iy = lid<-6 ? 1 : 2.5;
+  const wing = lid<-6 ? -7 : -4;
+  const hl = lid<-6 ? -3 : 0;
+  return `<g transform="translate(${x} 112) scale(${mirror*1.22} 1.22)">
+    <ellipse cx="-2" cy="${lid*.55-1}" rx="14" ry="6" fill="url(#${id}shadow)"/>
+    <path d="M11 0 Q0 ${lid} -12 -2 Q-2 10.5 11 0 Z" fill="#fffaf6"/>
+    <g clip-path="url(#${id}eye${lid})">
+      <ellipse cx="-1" cy="${iy}" rx="7.2" ry="8.6" fill="url(#${id}iris)"/>
+      <ellipse cx="-1" cy="${iy+.5}" rx="3.2" ry="4.4" fill="${shade(c.eye,-.65)}"/>
+      <path d="M11 0 Q0 ${lid} -12 -2" fill="none" stroke="${shade(c.skin,-.35)}" stroke-opacity=".35" stroke-width="3"/>
+      <circle cx="-3.6" cy="${hl-1}" r="2.3" fill="#fff"/>
+      <circle cx="2.4" cy="${iy+3.5}" r="1.1" fill="#fff" opacity=".85"/>
+    </g>
+    <path d="M12.5 1.5 Q0 ${lid-3} -12 -3.5 L-17 ${wing} Q-15.5 -.5 -12 .5 Q0 ${lid+1} 11.5 2 Z" fill="${ink}"/>
+    <path d="M9 -3 Q-1 ${lid-6} -12 ${lid<-6?-6:-4.5}" fill="none" stroke="${ink}" stroke-opacity=".45" stroke-width="1"/>
+    <path d="M-11 2 Q-1 10 9 3.5" fill="none" stroke="${ink}" stroke-opacity=".25" stroke-width="1"/>
+  </g>`;
+}
+
+const BROW = {
+  neutral:'M10 -17 Q-1 -22 -14 -16', smile:'M10 -17.5 Q-1 -22.5 -14 -16.5', blush:'M10 -18 Q-1 -22 -14 -16',
+  troubled:'M10 -21.5 Q-1 -21 -14 -15', smirk:'M10 -16 Q-1 -21 -14 -17', cold:'M10 -16 Q-1 -19 -14 -16'
+};
+
+const LIPS = {
+  neutral:{u:'M91 142 Q95.5 139 100 140.5 Q104.5 139 109 142 Q100 143.5 91 142 Z', l:'M92.5 142.6 Q100 149 107.5 142.6 Q100 144 92.5 142.6 Z', line:'M91 142 Q100 143.5 109 142'},
+  smile:{u:'M89 140.5 Q95 139 100 140.5 Q105 139 111 140.5 Q100 144.5 89 140.5 Z', l:'M91 142 Q100 150 109 142 Q100 145.5 91 142 Z', line:'M88.5 140 Q100 145 111.5 140'},
+  blush:{u:'M92 142 Q96 139.2 100 140.6 Q104 139.2 108 142 Q100 142.8 92 142 Z', l:'M93 143.6 Q100 149.5 107 143.6 Q100 144.6 93 143.6 Z', line:'M92.5 142.4 Q100 144.2 107.5 142.4', gap:true},
+  smirk:{u:'M91 143 Q96 140 100.5 141.4 Q105 139.4 110.5 139.6 Q101 143.6 91 143 Z', l:'M92.5 143.4 Q100 149 108.5 141.2 Q100 144.6 92.5 143.4 Z', line:'M91 143 Q101 143.8 111 139.4'},
+  troubled:{u:'M93 143 Q97 140.4 100 141.4 Q103 140.4 107 143 Q100 142.6 93 143 Z', l:'M94 143.4 Q100 147.6 106 143.4 Q100 143.8 94 143.4 Z', line:'M93 143 Q100 142.4 107 143'},
+  cold:{u:'M92 142.4 Q96 140.6 100 141.4 Q104 140.6 108 142.4 Q100 143.2 92 142.4 Z', l:'M93 142.9 Q100 146.6 107 142.9 Q100 143.6 93 142.9 Z', line:'M92 142.4 Q100 143.2 108 142.4'}
+};
+
+function drawHer(k, mood, aff){
+  const c = CHARS[k], h = HAIR[c.style], id = 'h'+k;
+  mood = LID[mood]!==undefined ? mood : 'neutral';
+  const lid = LID[mood];
+  const blush = mood==='blush' ? .9 : (aff>=65 && mood==='smile' ? .6 : .3);
+  const sk = c.skin, skD = shade(sk,-.12), skS = shade(sk,-.3);
+  const hairD = shade(c.hair,-.35), hairL = shade(c.hair,.28);
+  const lips = LIPS[mood];
+  const browCol = shade(c.hair,-.1);
+
+  const defs = `<defs>
+    <linearGradient id="${id}hair" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${hairL}"/><stop offset=".45" stop-color="${c.hair}"/><stop offset="1" stop-color="${hairD}"/></linearGradient>
+    <linearGradient id="${id}skin" gradientUnits="userSpaceOnUse" x1="0" y1="50" x2="0" y2="320"><stop offset="0" stop-color="${shade(sk,.04)}"/><stop offset="1" stop-color="${skD}"/></linearGradient>
+    <linearGradient id="${id}cloth" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${shade(c.cloth,.14)}"/><stop offset="1" stop-color="${shade(c.cloth,-.28)}"/></linearGradient>
+    <radialGradient id="${id}iris" cx=".5" cy=".7" r=".65"><stop offset="0" stop-color="${shade(c.eye,.45)}"/><stop offset=".55" stop-color="${c.eye}"/><stop offset="1" stop-color="${shade(c.eye,-.55)}"/></radialGradient>
+    <radialGradient id="${id}blush"><stop offset="0" stop-color="#f26a8a" stop-opacity=".85"/><stop offset="1" stop-color="#f26a8a" stop-opacity="0"/></radialGradient>
+    <radialGradient id="${id}lip" cx=".5" cy=".35" r=".8"><stop offset="0" stop-color="${shade(c.lip,.12)}"/><stop offset="1" stop-color="${shade(c.lip,-.18)}"/></radialGradient>
+    <radialGradient id="${id}shadow" cx=".45" cy=".6" r=".55"><stop offset="0" stop-color="${c.shadow||shade(c.lip,-.05)}" stop-opacity=".45"/><stop offset="1" stop-color="${c.shadow||shade(c.lip,-.05)}" stop-opacity="0"/></radialGradient>
+    <clipPath id="${id}eye${lid}"><path d="M11 0 Q0 ${lid} -12 -2 Q-2 10.5 11 0 Z"/></clipPath>
+  </defs>`;
+
+  const ear = c.ear ? (c.ear.type==='drop'
+      ? `<g stroke="${c.ear.color}" stroke-width="1" fill="${c.ear.color}"><path d="M61 121 L61 133 M139 121 L139 133"/><path d="M61 133 Q58 138 61 141 Q64 138 61 133 Z M139 133 Q136 138 139 141 Q142 138 139 133 Z"/></g>`
+      : c.ear.type==='hoop'
+      ? `<g fill="none" stroke="${c.ear.color}" stroke-width="1.6"><circle cx="61" cy="129" r="5.5"/><circle cx="139" cy="129" r="5.5"/></g>`
+      : `<g fill="${c.ear.color}"><circle cx="61" cy="122" r="2.2"/><circle cx="139" cy="122" r="2.2"/></g>`) : '';
+
+  const necklace = c.necklace ? `<path d="M83 190 Q100 210 117 190" fill="none" stroke="${c.necklace}" stroke-width=".9"/><path d="M100 203 L97.5 207 L100 211 L102.5 207 Z" fill="${c.necklace}"/>` : '';
+
+  const glasses = c.glasses ? `<g fill="#ffffff" fill-opacity=".08" stroke="${shade(c.hair,-.1)}" stroke-width="1.1">
+      <rect x="66" y="101" width="27" height="20" rx="8"/><rect x="107" y="101" width="27" height="20" rx="8"/></g>
+      <path d="M93 108 Q100 105 107 108 M66 107 L58 104 M134 107 L142 104" fill="none" stroke="${shade(c.hair,-.1)}" stroke-width="1.4"/>
+      <path d="M70 104 L76 104 M111 104 L117 104" stroke="#fff" stroke-opacity=".5" stroke-width="1.2" stroke-linecap="round"/>` : '';
+
+  return defs
+   + (h.tail?`<path d="${h.tail}" fill="url(#${id}hair)"/>`:'')
+   + `<path d="${h.back}" fill="url(#${id}hair)"/>`
+   // body (waist-up)
+   + `<path d="${BODY}" fill="url(#${id}skin)"/>`
+   + `<path d="M88 150 Q100 170 112 150 L112 165 Q100 177 88 165 Z" fill="${skS}" opacity=".35"/>`
+   + `<path d="M72 198 Q84 193 95 199 M105 199 Q116 193 128 198" fill="none" stroke="${skS}" stroke-opacity=".55" stroke-width="1.2" stroke-linecap="round"/>`
+   + `<path d="M57 228 C55 240 53 252 52 264 M143 228 C145 240 147 252 148 264 M66 262 C69 274 70 286 66 304 M134 262 C131 274 130 286 134 304" fill="none" stroke="${skS}" stroke-opacity=".3" stroke-width="1.2"/>`
+   + `<path d="M100 262 Q99 271 100 279" fill="none" stroke="${skS}" stroke-opacity=".2" stroke-width="1"/><ellipse cx="100" cy="285" rx="1.4" ry="2.6" fill="${skS}" opacity=".6"/>`
+   + OUTFIT[c.outfit](id, c)
+   + necklace
+   // face
+   + `<path d="M62 98 C62 128 73 146 88 156 C95 161 105 161 112 156 C127 146 138 128 138 98 C138 66 121 50 100 50 C79 50 62 66 62 98 Z" fill="url(#${id}skin)"/>`
+   + `<path d="M62 100 C63 126 73 144 88 155 C77 145 67 128 66 100 Z" fill="${skS}" opacity=".18"/>`
+   + `<ellipse cx="77" cy="128" rx="12" ry="6.5" fill="url(#${id}blush)" opacity="${blush}"/><ellipse cx="123" cy="128" rx="12" ry="6.5" fill="url(#${id}blush)" opacity="${blush}"/>`
+   + (mood==='blush' ? `<path d="M71 127 L74 124 M75 128 L78 125 M117 127 L120 124 M121 128 L124 125" stroke="#e05a7a" stroke-opacity=".6" stroke-width=".9" stroke-linecap="round"/>` : '')
+   + eyeSVG(79, 1, lid, c, id) + eyeSVG(121, -1, lid, c, id)
+   + `<g fill="none" stroke="${browCol}" stroke-width="1.5" stroke-linecap="round"><path transform="translate(79 112) scale(1.15)" d="${BROW[mood]}"/><path transform="translate(121 112) scale(-1.15 1.15)" d="${BROW[mood]}"/></g>`
+   + `<path d="M102 124 Q104.5 129.5 100.5 131" fill="none" stroke="${skS}" stroke-opacity=".7" stroke-width="1.1" stroke-linecap="round"/>`
+   + `<g transform="translate(100 143) scale(1.08 1.22) translate(-100 -143)"><path d="${lips.u}" fill="url(#${id}lip)"/><path d="${lips.l}" fill="url(#${id}lip)"/>`
+   + `<path d="${lips.line}" fill="none" stroke="${shade(c.lip,-.45)}" stroke-width="${lips.gap?1.4:.9}" stroke-linecap="round"/>`
+   + `<ellipse cx="101.5" cy="${mood==='blush'?145.6:144.4}" rx="2.2" ry=".7" fill="#fff" opacity=".45"/></g>`
+   + (c.mole?`<circle cx="130" cy="124" r=".95" fill="${shade(c.hair,-.2)}"/>`:'')
+   // front hair
+   + `<path d="${h.bangs}" fill="url(#${id}hair)"/>`
+   + (h.front?`<path d="${h.front}" fill="url(#${id}hair)"/>`:'')
+   + `<path d="${h.strands}" fill="none" stroke="${hairD}" stroke-opacity=".14" stroke-width="1" stroke-linecap="round"/>`
+   + `<path d="M78 54 Q100 46 122 54" fill="none" stroke="#fff" stroke-opacity=".14" stroke-width="3" stroke-linecap="round"/>`
+   + (c.style==='pony'?`<circle cx="138" cy="62" r="4" fill="${c.acc}"/>`:'')
+   + glasses + ear;
+}
+// ---- PORTRAIT END ----
+
+// ============================================================
+// Scenario 1 — 初級（判定すぐ表示）
+// ============================================================
+const BEGINNER = {
+ id:'beginner', tier:'初級', lv:1, title:'はじめての夜', her:'A', start:'intro', hide:0,
+ who:'三浦 灯（27）書店員',
+ desc:'友達の飲み会で出会った、本が好きな女性。素直で話しやすいけど、ジャブもサインも読めないと「いい人」で終わる。',
+ meters:['好感度','信頼'],
+ lessons:[
+  ['清潔感は手間で作れる','髪・眉・爪・サイズの合う服。高い服より手入れ。'],
+  ['会話は相手の「好き」を聞く','仕事より趣味。話す量は自分3：相手7。'],
+  ['誘いはジャブから','「今度飲みましょう」で反応を見て、乗ってきたら日程を決める。'],
+  ['相手のペースに合わせる','お酒も距離も、相手より半歩うしろ。'],
+  ['サインを読む','会話が途切れる、目が合う、離れない。キスは聞くより、ゆっくり近づく。'],
+  ['引くときはあっさり','断られたら笑って引く。それが次のチャンスになる。'],
+  ['ゴムは持っておく','ないなら、その日はしない。'],
+  ['翌朝こそ言葉にする','曖昧にすると「遊ばれた？」と思われる。']],
+ nodes:{
+intro:{ch:'第0話　準備',bg:'room',place:'自室',her:null,q:'身だしなみ',
+ lines:[
+  ['N','{name}、29歳、SE。彼女いない歴＝年齢。'],
+  ['N','金曜の夜、同期の健太からLINEが来た。'],
+  ['K','土曜の飲み会、一人来れなくなった。お前来いよ。女の子も3人来るぞ'],
+  ['N','「行く」と返した。問題は、何を着ていくかだ。']],
+ choices:[
+  {t:'持ってる中でいちばん新しいシャツと、きれいめのチノパン',a:3,g:'ok',r:['N','（無難。…でも、シャツの襟が少しヨレている）'],
+   c:'無難なのは悪くない。けど女は、襟のヨレとか毛玉とか靴の汚れとか、細かいとこを意外と見てるよ。'},
+  {t:'美容院で「清潔感が出るように」と頼んで髪を切る。服はサイズの合うものを1セットだけ買う',a:10,g:'good',r:['N','（鏡の中の自分が、少しだけ垢抜けて見えた）'],
+   c:'正解。服より髪と眉で印象はかなり変わる。目指すのは「おしゃれな人」じゃなくて「ちゃんとしてる人」。'},
+  {t:'ネットの「モテコーデ」をマネキン買いする',a:5,g:'ok',r:['N','（服は完璧。…なぜか、服に着られている気がする）'],
+   c:'悪くない。ただ、着慣れてない服って動きでバレる。サイズだけは店員さんに見てもらって。'}],
+ next:'party1'},
+
+party1:{ch:'第1話　出会い',bg:'izakaya',place:'駅前の居酒屋',q:'最初の会話',mood:'smile',
+ lines:[
+  ['N','土曜、駅前の居酒屋。男女3人ずつ。'],
+  ['N','隣に座ったのは、ショートボブの女性だった。'],
+  ['A','はじめまして、三浦です。三浦灯。健太くんの…友達の友達、です（笑）'],
+  ['A','こういう会、よく来るんですか？']],
+ choices:[
+  {t:'「初めてです。健太に数合わせで呼ばれました（笑）」',a:10,tr:5,g:'good',r:['A','あはは、私もほぼそれです（笑）','smile'],
+   c:'軽く笑える正直さがいちばん強い。「数合わせ」って言える余裕で、慣れてない感じが逆に好印象になってる。'},
+  {t:'「実は初めてで、めちゃくちゃ緊張してます」',a:5,tr:5,g:'ok',r:['A','えー、全然そう見えないですよ','smile'],
+   c:'素直なのはいい。でも緊張を前に出しすぎると、相手が「気を遣わなきゃ」ってなる。笑いに変えられたら満点だった。'},
+  {t:'「たまに来ますね。三浦さんは？」',a:2,tr:-2,g:'ok',r:['A','私はあんまり…','neutral'],
+   c:'無難。だけど慣れてるフリは、ちょっとした会話で崩れる。崩れた瞬間がいちばん気まずい。'}],
+ next:'party2'},
+
+party2:{ch:'第1話　出会い',bg:'izakaya',place:'駅前の居酒屋',q:'話の広げ方',mood:'smile',
+ lines:[
+  ['A','私、駅ビルの本屋で働いてるんです']],
+ choices:[
+  {t:'「本屋さん！ 最近どんな本が売れてるんですか？」',a:4,g:'ok',r:['A','えっと、最近だとビジネス書とか…','neutral'],
+   c:'悪くないけど、それは仕事の話。飲み会で仕事モードに戻されると、ちょっと疲れる。'},
+  {t:'「じゃあ三浦さん自身は、どんな本が好きなんですか？ 仕事抜きで」',a:12,tr:5,g:'good',r:['A','え、それ聞いちゃいます？ 長くなりますよ（笑）','smile'],
+   c:'「仕事抜きで」がうまい。肩書きじゃなくて本人に興味がある、ってちゃんと伝わる。'},
+  {t:'「本屋さんって、なんかおしゃれですよね。似合ってます」',a:5,g:'ok',r:['A','え、そうですか？（笑）ありがとうございます','smile'],
+   c:'褒められたら嬉しい。けど、話がそこで止まる。褒めたら質問をひとつ足して。'}],
+ next:'party3'},
+
+party3:{ch:'第1話　出会い',bg:'izakaya',place:'駅前の居酒屋',q:'連絡先',mood:'smile',
+ lines:[
+  ['N','灯さんが教えてくれたのは、古い喫茶店をめぐるエッセイだった。'],
+  ['N','話は思ったより弾んで、気づけばお開きの時間。'],
+  ['K','二次会行く人ー！'],
+  ['A','あ、私は明日早いので、ここで']],
+ choices:[
+  {t:'「さっきの本の話、まだ聞き足りなくて。LINE交換しません？」',a:10,tr:5,g:'good',r:['A','ぜひ！','smile'],
+   c:'理由つきだから自然。「今日の続き」なら重くないし、断る理由もない。'},
+  {t:'幹事が作るグループLINEに入っておいて、あとで個別に連絡する',a:7,tr:5,g:'good',r:['N','（グループに、灯さんのアイコンが並んだ）','smile'],
+   c:'実はいちばん警戒されないやり方。ただ、個別に送る勇気はあとで必要。'},
+  {t:'「また飲み会あったら、ぜひ」と言って見送る',a:0,g:'bad',r:['A','はい、ぜひ〜','neutral'],
+   c:'社交辞令で終わり。次の飲み会で会える保証なんてない。',next:'endNone'}],
+ next:'line1'},
+
+line1:{ch:'第2話　LINE',bg:'phone',place:'帰りの電車',her:null,q:'最初のLINE',
+ lines:[
+  ['N','帰りの電車。スマホを握りしめる。'],
+  ['N','今日のお礼、どう送ろう。']],
+ choices:[
+  {t:'「今日はありがとうございました！ 教えてもらった本、明日買いに行きます」',a:8,tr:5,g:'good',r:['A','（LINE）わーい！ ぜひうちの店で（笑）','smile'],
+   c:'お礼と、今日の具体的な話題ひとつ。返しやすい。'},
+  {t:'「今日はお疲れさまでした！ 楽しかったです」',a:3,g:'ok',r:['A','（LINE）お疲れさまでした〜！','smile'],
+   c:'悪くない。でも、他の男子からもほぼ同じ文面が来てる。'},
+  {t:'翌日の昼に送る。夜に送るとがっついてる感じがするから',a:1,g:'ok',r:['A','（LINE・夕方）こちらこそ！','neutral'],
+   c:'考えすぎ。お礼は当日の夜でいい。1日空くと、昨日の楽しさがちょっと冷める。'}],
+ next:'line2'},
+
+line2:{ch:'第2話　LINE',bg:'phone',place:'自室',her:null,q:'誘い方',
+ lines:[
+  ['N','LINEは数日続いている。本の感想を送ると、長めの返信が来た。'],
+  ['N','そろそろ、誘いたい。']],
+ choices:[
+  {t:'「今度、飲みにでも行きましょうよ！」と軽く投げてみる',a:8,g:'good',set:{jab:true},r:['A','（LINE）いいですね！ 行きましょう〜','smile'],
+   c:'まずはジャブ。これなら女も「いいね〜」で軽く返せる。乗ってきたら、そこで日程を決めればいい。'},
+  {t:'「来週の金曜か土曜、飲みに行きませんか？」と日程まで出す',a:0,tr:-3,g:'ok',r:['A','（LINE）あ、えっと…ちょっと予定見てみますね！','neutral'],
+   c:'丁寧なんだけど、まだ「行くかどうか」も決めてないのに日付を出されると身構える。断るなら理由を考えなきゃいけなくなるから。'},
+  {t:'もう少しLINEを続けて、向こうから誘ってくれるのを待つ',a:-3,g:'bad',r:['N','（話題が尽きて、やりとりはスタンプで終わった）'],
+   c:'女から誘うのはハードルが高い。待ってると、LINEは自然消滅する。'}],
+ next:s=>s.a<20?'endFade':'line3'},
+
+line3:{ch:'第2話　LINE',bg:'phone',place:'自室',her:null,q:'日程調整',
+ lines:s=>s.flags.jab?[['N','反応は悪くない。']]
+  :[['N','数日後、もう一度軽く「今度飲みましょう」と送り直した。'],['A','（LINE）いいですね〜！']],
+ choices:[
+  {t:'「やった！ 灯さんの空いてる日、いくつか教えてください」',a:8,tr:3,g:'good',r:['A','（LINE）来週なら水曜か金曜の夜が空いてます','smile'],
+   c:'反応を見てから、日程は相手に出してもらう。これがいちばん楽。'},
+  {t:'「金曜の夜とかどうですか？」と1日だけ提案する',a:5,g:'ok',r:['A','（LINE）金曜、大丈夫です！','smile'],
+   c:'これもアリ。ダメだったときに、すぐ別の日を出せればOK。'},
+  {t:'「いつでも合わせます！」',a:0,g:'ok',r:['A','（LINE）えっと…じゃあ来週の金曜とか？','neutral'],
+   c:'優しいけど、全部丸投げされると困る。あと、ちょっとヒマな人っぽく見える。'}],
+ next:'date1a'},
+
+date1a:{ch:'第3話　初デート',bg:'izakaya',place:'駅前の焼き鳥屋',q:'相手の愚痴',mood:'troubled',
+ lines:[
+  ['N','金曜の夜、駅前の焼き鳥屋。'],
+  ['N','灯さんは、少し疲れた顔をしていた。'],
+  ['A','ごめんね、今日お店でクレーム対応があって…ちょっと引きずってて']],
+ choices:[
+  {t:'「うわ、それはしんどい。どんな客だったの？」',a:12,tr:8,g:'good',r:['A','聞いてくれる？ もうね…','smile'],
+   c:'まず聞く。それだけ。女が求めてるのは、解決より「わかる〜」のほう。'},
+  {t:'「今日はそれ忘れよ！ 何飲む？」と明るく切り替える',a:5,g:'ok',r:['A','…うん、そうだね（笑）','neutral'],
+   c:'気分転換がありがたいときもある。でも、一回くらいは聞いてほしかった、ってのが本音。'},
+  {t:'「わかる、僕も接客バイトのとき似たようなことあって…」',a:2,g:'ok',r:['A','へえ…そうなんだ','neutral'],
+   c:'共感のつもりが、いつの間にか自分の話になってる。先に最後まで聞いてから。'}],
+ next:'date1b'},
+
+date1b:{ch:'第3話　初デート',bg:'izakaya',place:'駅前の焼き鳥屋',q:'お会計',mood:'smile',
+ lines:[
+  ['N','2時間があっという間に過ぎた。'],
+  ['N','お会計の時間だ。']],
+ choices:[
+  {t:'「今日は誘ったし、ここは出させて」',a:6,tr:3,g:'good',r:['A','え、いいの？ じゃあ次は私がおごるね','smile'],
+   c:'スマート。「次は私が」って言わせたら、もう次の約束になってる。'},
+  {t:'「じゃあ僕が多めに出すね。4000円と2000円で」',a:6,tr:5,g:'good',r:['A','ありがと、助かる〜','smile'],
+   c:'これもアリ。全部おごられるのは気が引ける、って女も結構いる。'},
+  {t:'きっちり割り勘にする',a:-3,g:'ok',r:['A','あ、うん。3150円ね','neutral'],
+   c:'間違いではない。ただ初回でぴったり割り勘だと、「この人とはこの距離感か」って思われやすい。'}],
+ next:'date1c'},
+
+date1c:{ch:'第3話　初デート',bg:'street',place:'駅の改札前',q:'別れ際',mood:'smile',
+ lines:[
+  ['N','駅の改札前。'],
+  ['A','今日、すごく楽しかった']],
+ choices:[
+  {t:'「楽しかった。次、灯さんのおすすめの店連れてってよ」',a:10,tr:5,g:'good',r:['A','いいよ。とっておきのお店ある','blush'],
+   c:'楽しかったと言葉にして、その場で次の約束。完璧。'},
+  {t:'改札で軽く手を振って、帰りの電車で「今日楽しかった、ありがとう」とLINEする',a:7,tr:3,g:'good',r:['A','（LINE）こちらこそ！ また行こ〜','smile'],
+   c:'余韻を残すタイプ。これも全然アリ。'},
+  {t:'「…正直、けっこう好きかもしれない」と口に出してしまう',a:-4,g:'ok',r:['A','えっ（笑）…まだ1回目だよ？','troubled'],
+   c:'嬉しくないわけじゃない。でも早すぎると、こっちは「どう返そう」ってなる。'}],
+ next:s=>s.a<40?'endFriend':'prep2'},
+
+prep2:{ch:'第4話　夜',bg:'room',place:'自室',her:null,q:'2回目の前夜',
+ lines:[
+  ['N','2回目は金曜の夜。灯さんおすすめのワインバル。'],
+  ['N','前の晩、部屋を見渡す。']],
+ choices:[
+  {t:'部屋を片付けて、念のためゴムも買っておく',a:0,tr:5,g:'good',set:{prepared:true},r:['N','（準備はした。あとは流れ次第だ）'],
+   c:'期待しすぎないけど、準備はしておく。それがいちばん余裕のある状態。'},
+  {t:'何もしない。期待しすぎると空回りしそうだから',a:0,g:'ok',r:['N','（部屋は、いつも通りだ）'],
+   c:'気持ちはわかる。でも、いざってときに部屋が汚いとかゴムがないとかは、本当にもったいない。'},
+  {t:'新しい服と下着を買いに行く',a:2,g:'ok',r:['N','（新しい服で、少し気分が上がった）'],
+   c:'気分が上がるのは大事。でも、部屋とゴムのほうが優先。'}],
+ next:'date2a'},
+
+date2a:{ch:'第4話　夜',bg:'bar',place:'ワインバル',q:'お酒',mood:'smile',
+ lines:[
+  ['N','金曜の夜。ワインバルのカウンター。'],
+  ['N','灯さんは、いつもより少し大人っぽい服を着ていた。'],
+  ['A','ここのワイン、ほんとにおいしいの。でも私、そんなに強くなくて']],
+ choices:[
+  {t:'「じゃあ飲みやすいの頼もう。無理しないでね」',a:6,tr:10,g:'good',r:['A','ありがと。…そういうとこ、いいね','smile'],
+   c:'ペースを合わせてくれる人は安心できる。安心できる人とは、もっと長くいたくなる。'},
+  {t:'「えー、一杯くらい付き合ってよ〜」とノリで勧める',a:0,tr:-8,g:'bad',r:['A','…じゃあ、一杯だけね','neutral'],
+   c:'一回ならノリで済む。でも「飲ませようとする人」って印象は、女はけっこう覚えてる。'},
+  {t:'「お、じゃあ今日は僕が飲む担当で」と自分が多めに飲む',a:3,tr:-2,g:'ok',r:['A','（笑）ほどほどにね','smile'],
+   c:'面白いけど、酔っぱらったら台無し。ほろ酔いで止めて。'}],
+ next:'date2b'},
+
+date2b:{ch:'第4話　夜',bg:'bar',place:'ワインバル',q:'ボディタッチ',mood:'smile',
+ lines:[
+  ['N','二杯目。灯さんが笑いながら、{name}の腕に軽く触れた。'],
+  ['A','もう、{name}くん面白すぎ']],
+ choices:[
+  {t:'笑いながら、灯さんの肩を軽くポンと叩き返す',a:10,tr:3,g:'good',r:['N','（灯さんは、そのまま少しだけ距離を詰めてきた）','blush'],
+   c:'タッチには、同じ温度で返す。それで向こうが離れなければ脈あり。'},
+  {t:'「…今の、ちょっとドキッとした」と正直に言う',
+   dyn:s=>s.v==='A'?{a:10,g:'good',r:['A','…なにそれ（笑）。かわいいとこあるじゃん','blush']}:{a:1,g:'ok',r:['A','え、なにそれ（笑）','neutral']},
+   c:'言葉にするのはギャンブル。照れてくれる子ならドキッとさせられる。空気が軽いときだと「重っ」ってなることも。'},
+  {t:'ドキッとしたけど、何事もなかったように話を続ける',a:2,g:'ok',r:['A','…で、さっきの話なんだけど','neutral'],
+   c:'スルーされると「あれ、脈なし？」って思う。触ったほうも、けっこう勇気出してるんだよ。'}],
+ next:'date2c'},
+
+date2c:{ch:'第4話　夜',bg:'street',place:'夜の帰り道',q:'このあと',mood:'blush',
+ lines:[
+  ['N','23時過ぎ。店を出ると、夜風が気持ちいい。'],
+  ['N','灯さんは、駅に向かう道をやけにゆっくり歩いている。']],
+ choices:[
+  {t:'「…終電、何時？」と聞いてみる',
+   dyn:s=>(s.a>=70&&s.t>=45)?{a:8,tr:8,g:'good',r:['A','…何時だっけ（笑）','blush'],next:'home1'}
+                            :{a:0,g:'ok',r:['A','あ、やば、あと15分だ！','neutral'],next:'date3'},
+   c:'帰るかどうかの判断を相手に渡す聞き方。脈があれば「何時だっけ」とはぐらかしてくる。なければ時間を言われて終わり。どっちに転んでも気まずくならない。'},
+  {t:'「もうちょっと一緒にいたい。うち近いんだけど、寄ってく？」',
+   dyn:s=>(s.a>=75&&s.t>=50)?{a:8,tr:5,g:'good',r:['A','…うん','blush'],next:'home1'}
+                            :{a:0,g:'ok',r:['A','今日は帰るね。…でも、楽しかった','neutral'],next:'decline'},
+   c:'ストレートな誘い。気持ちが十分貯まってればそのまま行ける。足りないと、断られる。'},
+  {t:'何も言わずに駅まで送る',a:0,tr:5,g:'ok',r:['A','今日もありがと。またね','smile'],
+   c:'安全。けど女のほうは、帰り道に「…それだけ？」って思ってるかも。',next:'date3'}]},
+
+decline:{ch:'第4話　夜',bg:'street',place:'夜の帰り道',q:'断られたとき',mood:'neutral',
+ lines:[['N','断られた。']],
+ choices:[
+  {t:'「了解！ 気をつけてね」とあっさり送る',a:5,tr:15,g:'good',r:['A','うん。…またね','smile'],
+   c:'あっさり引けるのはポイント高い。断っても嫌な空気にならない人だと、次は断りにくくなる。',next:'date3'},
+  {t:'「えー、一杯だけ！ ほんとに一杯だけでいいから」と粘る',a:-15,tr:-30,g:'bad',r:['A','…ごめん、帰るね','troubled'],
+   c:'一回断ったのに粘られると、急に怖くなる。それまでの楽しかった時間ごと台無し。',next:'endBad'},
+  {t:'「そっか…」と露骨にテンションが下がる',a:-8,tr:-10,g:'bad',r:['A','…なんか、ごめんね','troubled'],
+   c:'落ち込むのはわかる。でも、それを見せられると女は罪悪感を背負わされる。',next:'date3'}]},
+
+home1:{ch:'第4話　夜',bg:'room',place:'{name}の部屋',q:'部屋に着いて',mood:'neutral',
+ lines:[
+  ['N','部屋に着いた。灯さんは少し落ち着かない様子で、本棚を眺めている。'],
+  ['A','わ、本いっぱい。…あ、これ私が薦めたやつだ']],
+ choices:[
+  {t:'飲み物を出して、ソファに並んで座る',a:8,tr:5,g:'good',r:['A','ありがと','smile'],
+   c:'まず座って、落ち着く時間。並んで座れば自然と距離が近くなる。'},
+  {t:'「何か観る？」と映画をつける',a:4,g:'ok',r:['A','いいね、何あるの？','smile'],
+   c:'定番。悪くないけど、映画に集中しちゃうと話が減る。'},
+  {t:'テーブルを挟んで、向かいに座る',a:-2,g:'ok',r:['A','…（ちょっと遠いな）','neutral'],
+   c:'わざわざ家まで来たのに、距離が遠い。ちょっと拍子抜け。'}],
+ next:'home2'},
+
+home2:{ch:'第4話　夜',bg:'room',place:'{name}の部屋',q:'キス',mood:'blush',
+ lines:[
+  ['N','話しているうちに、肩が触れる距離になった。'],
+  ['N','ふと、会話が途切れる。灯さんは、目をそらさない。']],
+ choices:[
+  {t:'少し間を置いて、ゆっくり顔を近づける',a:10,tr:5,g:'good',r:['N','（灯さんは、目を閉じた）','blush'],
+   c:'聞かなくていい。会話が途切れて、目が合って、相手が離れない。それが答え。ゆっくり近づけば、嫌ならよけられるから女も安心。',next:'home3'},
+  {t:'「…キスしてもいい？」と聞く',a:-3,g:'ok',r:['A','…それ、聞く？（笑）','smile'],
+   c:'正直、聞かれるとちょっと冷める。誠実なのはわかるけど、ここは雰囲気で来てほしかった。…まあ、嫌じゃないけど。',next:'home3'},
+  {t:'緊張して、つい「そういえばさ」と話題を変える',a:-3,g:'ok',r:['A','…うん（笑）','neutral'],
+   c:'あの沈黙、待ってたんだけどな。',next:'home2b'}]},
+
+home2b:{ch:'第4話　夜',bg:'room',place:'{name}の部屋',q:'二度目のチャンス',mood:'blush',
+ lines:[
+  ['N','しばらくして、灯さんが肩にもたれかかってきた。']],
+ choices:[
+  {t:'そっと肩を抱いて、ゆっくり顔を近づける',a:8,tr:3,g:'good',r:['N','（灯さんは、小さく笑って目を閉じた）','blush'],
+   c:'向こうから2回目のサインをくれた。これを逃したら、さすがに次はない。',next:'home3'},
+  {t:'固まったまま、朝まで話し続ける',a:-5,g:'ok',r:['N','（気づけば外が明るくなっていた）'],
+   c:'一晩話せたのは悪くない。でも女からもたれかかるのは、相当勇気がいるんだよ。',next:'morning'}]},
+
+home3:{ch:'第4話　夜',bg:'room',place:'{name}の部屋',q:'「待って」',mood:'blush',
+ lines:[
+  ['N','キスのあと。灯さんが少しだけ体を離して、笑った。'],
+  ['A','…ちょっと待って、心臓うるさい（笑）']],
+ choices:[
+  {t:'「俺も（笑）」と笑って、手を握ったまま少し待つ',a:10,tr:10,g:'good',r:['A','…ほんとだ、手汗すごい（笑）','blush'],
+   c:'照れの「待って」には、笑って待つのがいちばん。待ってくれる人なら、女は安心して自分から近づける。',next:'fade'},
+  {t:'気にせず、もう一度キスする',a:-10,tr:-15,g:'bad',r:['A','…ちょ、待ってってば','troubled'],
+   c:'照れの「待って」でも、聞いてもらえないと一気に冷める。止まれる人かどうか、女はちゃんと見てる。',next:'home4'},
+  {t:'「え、ごめん、嫌だった？」と焦って離れる',a:-3,tr:5,g:'ok',r:['A','いや、嫌とかじゃなくて（笑）','smile'],
+   c:'気遣いは嬉しい。でも毎回深刻になられると、こっちが気を遣う。',next:'fade'}]},
+
+home4:{ch:'第4話　夜',bg:'room',place:'{name}の部屋',q:'冷めた空気',mood:'troubled',
+ lines:[
+  ['N','灯さんは体を起こして、髪を直した。'],
+  ['A','…ごめん、今日はやっぱり帰るね']],
+ choices:[
+  {t:'「ごめん、焦った。駅まで送るよ」',a:0,tr:5,g:'ok',r:['A','…うん','neutral'],
+   c:'謝れたのはまだ救い。でも、一度冷めた夜は戻らない。',next:'endFriend'},
+  {t:'「えー、なんで？ いい感じだったじゃん」',a:-15,tr:-30,g:'bad',r:['A','…そういうとこだよ','troubled'],
+   c:'帰ると言ってる相手を引き止めると、「この人、怖い」で終わる。',next:'endBad'}]},
+
+fade:{ch:'第4話　夜',bg:'black',place:'',her:null,q:'ゴム',
+ lines:s=>s.flags.prepared?[
+  ['N','引き出しには、買っておいたゴムがある。'],
+  ['N','——その夜のことは、二人だけの秘密。']]
+ :[
+  ['N','……ゴムが、ない。'],
+  ['H','ごめん、用意してなかった。…今日はここまでにしよう'],
+  ['A','…ちゃんと言うの、えらい（笑）'],
+  ['N','結局、二人は朝まで話していた。']],
+ choices:[
+  {t:'朝を迎える',g:'good',dyn:s=>s.flags.prepared
+   ?{c:'ゴムを当たり前に持ってる人は、それだけで信用できる。'}
+   :{c:'ないなら、しない。そこで引いてくれる人に、女はむしろ惚れる。でも次は準備しといて。'},
+   next:'morning'}]},
+
+morning:{ch:'最終話',bg:'morning',place:'翌朝',q:'翌朝',mood:'smile',
+ lines:[
+  ['N','翌朝。カーテンの隙間から光が差し込む。'],
+  ['A','…おはよ']],
+ choices:[
+  {t:'「おはよう。…ちゃんと付き合いたいと思ってる」',a:10,tr:10,g:'good',
+   dyn:s=>s.a>=55?{r:['A','…順番、逆じゃない？（笑） …よろしくお願いします','blush'],next:'endTrue'}
+                 :{r:['A','…ちょっと考えさせて','neutral'],next:'endAmb'},
+   c:'夜を過ごしたあとこそ言葉にする。女は翌朝の態度で「遊びだったのか」を判断してる。'},
+  {t:'一緒に朝ごはんを食べに行って楽しく過ごす。告白はまた今度',a:3,g:'ok',r:['A','楽しかった。…で、私たちって何なんだろうね','neutral'],
+   c:'楽しいのはいい。でも一晩過ごしたあとに何も言われないと、女は不安になる。',next:'endAmb'},
+  {t:'駅まで送って、その日の夜にLINEで告白する',a:5,g:'ok',
+   dyn:s=>s.a>=60?{r:['A','（LINE）…直接言ってほしかったな（笑） でも、はい','smile'],next:'endTrue'}
+                 :{r:['A','（LINE）ありがとう。ちょっと考えさせて','neutral'],next:'endAmb'},
+   c:'その日のうちならギリギリ。でも、顔を見て言われたほうが嬉しいのは間違いない。'}]},
+
+date3:{ch:'最終話',bg:'park',place:'夕暮れの公園',q:'告白',mood:'smile',
+ lines:[
+  ['N','2週間後。3回目のデート。水族館の帰り道、夕暮れの公園。'],
+  ['A','今日もありがと。{name}くんといると、なんか落ち着く']],
+ choices:[
+  {t:'「灯さんのことが好きです。付き合ってください」',a:10,tr:5,g:'good',
+   dyn:s=>(s.a>=55&&s.t>=45)?{r:['A','…うん。私も、好き','blush'],next:'endGood'}
+                            :{r:['A','ごめんね。{name}くんのことは大事だけど、そういう気持ちにはなれなくて','troubled'],next:'endFriend'},
+   c:'告白はシンプルに、まっすぐ。'},
+  {t:'「…今度、うちで映画でも観ない？」と先に家に誘う',
+   dyn:s=>(s.a>=60&&s.t>=50)?{a:3,g:'ok',r:['A','…いいよ。でも、その前に言うことあるんじゃない？','smile'],next:'date3b'}
+                            :{a:0,g:'ok',r:['A','うーん…それはまだ、かな','neutral'],next:'endFriend'},
+   c:'気持ちを言う前に家に誘うと、「どういうつもり？」ってなる。信頼があれば、催促してもらえるけど。'},
+  {t:'何も言えずに「じゃあ、また」と帰る',a:-5,g:'bad',r:['A','…うん、またね','neutral'],
+   c:'3回会って楽しかったなら、もう十分サイン出てる。言わなきゃ何も始まらない。',next:'endFriend'}]},
+
+date3b:{ch:'最終話',bg:'park',place:'夕暮れの公園',mood:'smile',
+ lines:[['N','灯さんが、いたずらっぽく笑っている。']],
+ choices:[{t:'「…好きです。付き合ってください」',g:'good',r:['A','よくできました（笑）','blush'],c:'最後は催促されちゃったけど、結果オーライ。',next:'endGood'}]},
+
+endTrue:{ending:true,tone:'good',rank:'TRUE END',title:'恋人になった朝',
+ text:['灯さんは笑って「順番、逆じゃない？」と言った。それから、ちゃんと頷いてくれた。',
+       '経験がないことは、ハンデじゃなかった。ジャブを打って、サインを読んで、引くときは引いて、最後は言葉にした。それだけだった。']},
+endGood:{ending:true,tone:'good',rank:'GOOD END',title:'夕暮れの返事',
+ text:['急がなくてよかった。会うたびに、灯さんの中で「この人なら大丈夫」が育っていた。',
+       '夜をどう過ごすかより、断られたときにどうするか。そっちのほうがずっと見られていた。']},
+endFriend:{ending:true,tone:'normal',rank:'NORMAL END',title:'いい人止まり',
+ text:['灯さんとは今でも時々、本の話をする。嫌われてはいない。でも、それ以上にはならなかった。',
+       'サインは出ていた。どこかで一歩、踏み出せていたら。']},
+endNone:{ending:true,tone:'normal',rank:'NORMAL END',title:'縁は待っていても来ない',
+ text:['あの日、連絡先を聞かなかった。それきり、灯さんに会うことはなかった。',
+       'チャンスは、勇気を出した人のところにしか来ない。']},
+endFade:{ending:true,tone:'normal',rank:'NORMAL END',title:'「そのうち」は来なかった',
+ text:['LINEはいつの間にか途切れた。',
+       '第一印象、返しやすいメッセージ、軽いジャブ。一つ一つは小さくても、全部が効いてくる。']},
+endAmb:{ending:true,tone:'normal',rank:'NORMAL END',title:'名前のない関係',
+ text:['その後も何度か会った。でも、関係に名前はつかないままだった。',
+       '体の距離が縮んでも、言葉にしなければ心の距離は曖昧なまま。']},
+endBad:{ending:true,tone:'bad',rank:'BAD END',title:'既読スルー',
+ text:['その後、送ったLINEに既読がつくことはなかった。',
+       '楽しかった時間も、最後の数分で全部塗り替えられる。引けない男がいちばん怖い。']}
+ }
+};
+
+// ============================================================
+// Scenario 2 — 中級：マッチングアプリ（判定は伏せ、コメントのみ）
+// ============================================================
+const MIDDLE = {
+ id:'middle', tier:'中級', lv:2, title:'マッチングアプリ', her:'S', start:'prof', hide:1,
+ who:'沙耶（31）看護師',
+ desc:'夜勤ありで返信は遅め。アプリ疲れ気味で、毎日何十人からメッセージが来る。その日の彼女の調子を読めるかが鍵。',
+ meters:['好感度','信頼'],
+ lessons:[
+  ['写真は他撮りの自然な笑顔','盛りすぎると、会った瞬間の差でガッカリされる。'],
+  ['最初のメッセージで差がつく','プロフィールを読んだ証拠と、答えやすい質問をひとつ。'],
+  ['共通点は盛らない','盛った共通点は、会ったときに必ず試される。'],
+  ['ジャブ → 軽いリマインド','女の「連絡しますね」は半分忘れてる。冗談まじりで一回聞くのはアリ。'],
+  ['その日の調子に合わせる','疲れてる日は気遣い、元気な日はノリ。正解は毎回変わる。'],
+  ['ライバルより目の前の時間','探りや嫉妬より、余裕のある返しを。'],
+  ['サインを拾う','「終電ないよ？」「グラスを置く」。言葉より行動を見る。'],
+  ['アプリの後始末も誠実さ','一晩過ごした直後の「オンライン」は、全部バレてる。']],
+ nodes:{
+prof:{ch:'第1話　登録',bg:'phone',place:'自室',her:null,q:'プロフィール写真',
+ lines:[
+  ['N','飲み会では出会いが増えない。{name}は、マッチングアプリを始めることにした。'],
+  ['N','まずはプロフィール写真だ。']],
+ choices:[
+  {t:'友達に頼んで、明るい場所で笑顔の写真を撮ってもらう',a:10,g:'good',r:['N','（自然な笑顔。いいねの数より、質が上がった気がする）'],
+   c:'他撮りの自然な笑顔が最強。女はまず「普通に会えそうな人か」を見てる。'},
+  {t:'アプリ用の撮影サービスで、プロに撮ってもらう',a:9,g:'good',r:['N','（いいねが一気に増えた）'],
+   c:'効果は抜群。ただ盛れすぎると、会ったときの差でガッカリされるリスクもある。'},
+  {t:'自撮りだけど、いちばん写りのいい一枚を選ぶ',a:3,g:'ok',r:['N','（いいねは、ぽつぽつ）'],
+   c:'自撮りは「自分大好き」に見えやすい。悪くはないけど、損してる。'}],
+ next:'msg1'},
+
+msg1:{ch:'第1話　登録',bg:'phone',place:'アプリ',q:'最初のメッセージ',mood:'neutral',
+ lines:[
+  ['N','マッチした。沙耶さん、31歳、看護師。'],
+  ['N','プロフィール：「休日はサウナと一人焼肉。プロフィールちゃんと読んでくれる人がいいです」']],
+ choices:[
+  {t:'「はじめまして。一人焼肉できる人、尊敬します。おすすめのお店あったら知りたいです」',a:12,tr:5,g:'good',r:['S','わかってくれる人いた（笑） 上野にいい店あります','smile'],
+   c:'プロフィールを読んだ証拠と、答えやすい質問。それだけで何十通の中から浮く。'},
+  {t:'「はじめまして！ サウナ好きなんですね。僕も最近ハマってます」（本当は1回しか行ったことない）',a:8,g:'ok',set:{sauna:true},r:['S','えー！ どこ行ってるんですか？','smile'],
+   c:'共通点アピールは効く。…でも、盛った共通点はあとで必ず試される。'},
+  {t:'「はじめまして！ マッチありがとうございます。休日は何してることが多いですか？」',a:2,g:'ok',r:['S','（2日後）サウナとか行ってます〜','neutral'],
+   c:'丁寧だけど、プロフィールに書いてあることを聞いちゃってる。「読んでないな」ってバレる。'}],
+ next:'msg2'},
+
+msg2:{ch:'第2話　やりとり',bg:'phone',place:'アプリ',q:'返信が遅いとき',her:null,
+ lines:[
+  ['N','やりとりが始まった。でも沙耶さんの返信は、半日から2日おき。夜勤があるらしい。'],
+  ['N','前のメッセージから、もう丸1日たった。']],
+ choices:[
+  {t:'ペースは気にせず、返信が来たら丁寧に返す',a:6,tr:8,g:'good',r:['S','夜勤明けでした！ 返信ゆっくりでごめんなさい','smile'],
+   c:'返信ペースを責めない人は楽。アプリでは、それだけで残る。'},
+  {t:'「夜勤お疲れさまです！ ゆっくり休んでください」と一言だけ送っておく',a:3,g:'ok',r:['S','ありがとうございます〜','neutral'],
+   c:'気遣いはありがたい。けど返信を待たずに送ると、返さなきゃいけないものが増える。'},
+  {t:'他の人ともやりとりして、一人に集中しすぎないようにする',a:5,g:'good',r:['N','（不思議と、沙耶さんへの返信も落ち着いた文面になった）'],
+   c:'正直、それが健全。一人に全力だと、文面に必死さが出る。'}],
+ next:'ask'},
+
+ask:{ch:'第2話　やりとり',bg:'phone',place:'アプリ',q:'誘い方',her:null,
+ lines:[
+  ['N','やりとりして2週間。焼肉の話でかなり盛り上がった。']],
+ choices:[
+  {t:'「その焼肉屋、今度連れてってくださいよ（笑）」と軽く振る',a:10,g:'good',r:['S','いいですよ〜（笑）','smile'],
+   c:'まずはジャブ。冗談っぽく言えば、相手も軽く乗れる。'},
+  {t:'「一度お茶しませんか？ 来週の水曜か木曜のお昼とか」',a:5,g:'ok',r:['S','あ、えっと…シフト確認しますね','neutral'],
+   c:'アプリなら具体的な誘いも普通。でも、まだ温まりきってない段階だと身構えられる。'},
+  {t:'「一回、通話してみません？」',a:4,tr:5,g:'ok',r:['S','うーん、電話あんまり得意じゃなくて…','troubled'],
+   c:'安心材料にはなる。けど、通話が苦手な女は多い。'}],
+ next:'ask2'},
+
+ask2:{ch:'第2話　やりとり',bg:'phone',place:'アプリ',q:'返事が来ない',her:null,
+ lines:[
+  ['S','シフト出たら連絡しますね！'],
+  ['N','…そして、5日たった。連絡はない。']],
+ choices:[
+  {t:'「シフト出ました？ 焼肉の口になってます（笑）」と軽く聞く',a:6,g:'good',r:['S','あ、ごめんなさい！ 水曜休みです','smile'],
+   c:'女の「連絡しますね」は、半分くらい忘れてる。冗談まじりで一回リマインドするのは全然アリ。',next:'meet1'},
+  {t:'向こうから来るまで待つ',
+   dyn:s=>s.a>=28?{a:0,g:'ok',r:['S','（1週間後）遅くなってすみません！ 水曜どうですか？','smile'],next:'meet1'}
+                 :{a:0,g:'ok',r:['N','（連絡は、来なかった）'],next:'mEndGhost'},
+   c:'待っても来ることはある。でもそれは、最初の印象がかなりよかった場合だけ。'},
+  {t:'「忙しいなら全然大丈夫です！」と身を引く',a:-3,
+   dyn:s=>s.a>=30?{g:'ok',r:['S','あ、いえいえ！ 水曜なら空いてます','smile'],next:'meet1'}
+                 :{g:'ok',r:['S','すみません、落ち着いたら連絡します…','neutral'],next:'mEndGhost'},
+   c:'引きすぎ。女からすると「あ、そんなに会いたくないのかな」って思っちゃう。'}]},
+
+meet1:{ch:'第3話　初対面',bg:'yakiniku',place:'上野の焼肉屋',q:'初対面',
+ lines:s=>s.v==='A'
+  ?[['N','水曜の夕方、上野の焼肉屋。沙耶さんは少し眠そうだった。'],['S','はじめまして…ごめんなさい、夜勤明けで','neutral']]
+  :[['N','水曜の夕方、上野の焼肉屋。沙耶さんは、手を振りながら小走りで来た。'],['S','はじめまして〜！ お腹すいた！','smile']],
+ choices:[
+  {t:'「来てくれてありがとう。疲れてたら、今日は早めに切り上げよう」',
+   dyn:s=>s.v==='A'?{a:10,tr:10,g:'good',r:['S','…優しい。むしろ目、覚めたかも','smile']}:{a:1,g:'ok',r:['S','え、全然元気だよ？（笑）','neutral']},
+   c:'相手の状態に合わせられるか。疲れてる日なら気遣いが刺さる。元気な日に言うと、ちょっとズレる。'},
+  {t:'「僕もお腹ぺこぺこ！ 今日は全部沙耶さんにおまかせで」とテンション高めにいく',
+   dyn:s=>s.v==='B'?{a:10,tr:5,g:'good',r:['S','任せて！ タン塩からね','smile']}:{a:-3,g:'ok',r:['S','あはは…元気だね','neutral']},
+   c:'テンションは相手に合わせるもの。元気な日ならノリが合う。疲れてる日にこれをやられると、ちょっとしんどい。'},
+  {t:'「実は昨日、緊張してあんまり寝られなくて（笑）」',a:5,tr:5,g:'ok',r:['S','えー、かわいい（笑）','smile'],
+   c:'軽い自己開示。どっちの日でも外さないけど、決め手にもならない。'}],
+ next:s=>s.flags.sauna?'sauna':'meet2'},
+
+sauna:{ch:'第3話　初対面',bg:'yakiniku',place:'上野の焼肉屋',q:'盛った共通点',mood:'smile',
+ lines:[['S','そういえば{name}くんもサウナ好きなんだよね？ どこ行ってるの？']],
+ choices:[
+  {t:'「ごめん、正直に言うと話合わせたくて盛った。1回しか行ったことない」',a:4,tr:6,g:'good',r:['S','（笑）正直か。じゃあ今度、いいとこ連れてってあげる','smile'],
+   c:'盛ったのは減点。でも、すぐ認めたのは加点。嘘を重ねる人より全然いい。'},
+  {t:'聞いたことのあるサウナの名前を言ってごまかす',a:-6,tr:-10,g:'bad',r:['S','へえ…あそこ、去年閉店したよ？','troubled'],
+   c:'嘘の上塗りはだいたいバレる。そして「他にも盛ってるのかな」って全部疑われる。'},
+  {t:'「最近忙しくて全然行けてないんだよね」とかわす',a:0,tr:-3,g:'ok',r:['S','そっか、もったいない','neutral'],
+   c:'その場はしのげた。でも、また聞かれたら同じことになる。'}],
+ next:'meet2'},
+
+meet2:{ch:'第3話　初対面',bg:'yakiniku',place:'上野の焼肉屋',q:'アプリ疲れ',mood:'troubled',
+ lines:[['S','正直、アプリちょっと疲れてて。ドタキャンとか、会ったら全然違う人とか…']],
+ choices:[
+  {t:'「沙耶さんは、どんな人を探してるの？」と聞いてみる',a:8,tr:10,g:'good',r:['S','普通に、ちゃんと付き合える人。…{name}くんは？','smile'],
+   c:'相手の目的を先に聞くと、自分の目的も言いやすくなる。アプリでいちばん大事なのは、そこのすり合わせ。'},
+  {t:'「わかる、僕も前にドタキャンされたことある」と共感する',a:5,tr:3,g:'ok',r:['S','あるある（笑）','smile'],
+   c:'共感としては満点。でも、話はそれ以上深まらない。'},
+  {t:'「僕はそういう感じじゃないんで、安心してください」',a:0,tr:-2,g:'ok',r:['S','…あはは、みんなそう言うんだよね','neutral'],
+   c:'自分から「安心して」って言われると、逆に構える。それは行動で見せるもの。'}],
+ next:'date2a'},
+
+date2a:{ch:'第4話　2回目',bg:'bar',place:'恵比寿のバル',q:'ライバル',mood:'smile',
+ lines:[
+  ['N','2回目は、沙耶さんの提案で恵比寿のバル。'],
+  ['N','テーブルの上で、沙耶さんのスマホにアプリの通知が何件も光った。']],
+ choices:[
+  {t:'気にせず、目の前の会話を全力で楽しむ',a:10,g:'good',r:['N','（沙耶さんは、スマホを裏返した）','smile'],
+   c:'ライバルは気にしても仕方ない。今いちばん楽しい人になるしかない。'},
+  {t:'「人気者だね（笑）」と軽くいじる',
+   dyn:s=>s.a>=50?{a:6,g:'good',r:['S','（笑）やきもち？','smirk']}:{a:-2,g:'ok',r:['S','…あ、ごめん','neutral']},
+   c:'余裕があるときのいじりは効く。関係が浅いうちは、ただの嫌味に聞こえる。'},
+  {t:'「…他にも会ってる人いるの？」と聞く',a:-5,tr:-3,g:'ok',r:['S','…それ、今聞く？','troubled'],
+   c:'気になるのは当然。でも2回目で探るのは早い。アプリでは並行が普通。'}],
+ next:'date2b'},
+
+date2b:{ch:'第4話　2回目',bg:'street',place:'夜の恵比寿',q:'2軒目',mood:'smile',
+ lines:[
+  ['N','店を出た。21時半。沙耶さんは明日休みらしい。'],
+  ['N','駅とは反対方向に、ゆっくり歩いている。']],
+ choices:[
+  {t:'「明日休みなら、もう一軒行かない？」',a:8,tr:5,g:'good',r:['S','いいね、行こ','smile'],
+   c:'いきなり家じゃなく、まず2軒目。段階を踏むと、女も「この先」を自分で選べる。',next:'bar'},
+  {t:'「…まだ帰りたくないな」とつぶやく',
+   dyn:s=>s.a>=50?{a:8,g:'good',r:['S','…私も','blush'],next:'bar'}:{a:-2,g:'ok',r:['S','（笑）どうしたの急に','neutral'],next:'third'},
+   c:'気持ちを素直に出す一言。好意が貯まってれば刺さるし、足りなければ流される。'},
+  {t:'「うち、ここから近いんだけど飲み直す？」',
+   dyn:s=>(s.a>=70&&s.t>=45)?{a:5,g:'good',r:['S','…いいよ','blush'],next:'home1'}
+                            :{a:-3,tr:-8,g:'ok',r:['S','ごめん、アプリで会った人の家にすぐは行けないかな','troubled'],next:'declined'},
+   c:'気持ちが十分なら、意外とこれで行ける。足りないと、慎重な女ほど一気に警戒する。'}]},
+
+bar:{ch:'第4話　2回目',bg:'bar',place:'静かなバー',q:'打ち明け話',mood:'blush',
+ lines:[
+  ['N','カウンターだけの静かなバー。'],
+  ['S','…実はね、今週ほかに2人と会ってたの。でも、今日がいちばん楽しかった']],
+ choices:[
+  {t:'「正直だね。…ちなみに、俺は何位？（笑）」',a:10,tr:5,g:'good',r:['S','（笑）今のとこ1位','blush'],
+   c:'余裕で返されるとドキッとする。嫉妬を見せずに笑いに変えられる人は強い。'},
+  {t:'「そっか…」と少し落ち込む',a:-4,g:'ok',r:['S','あ、ごめん、言わなきゃよかったかな','troubled'],
+   c:'気持ちはわかる。でも正直に言ったのに落ち込まれると、次から本音を言いづらくなる。'},
+  {t:'「僕は沙耶さんとしか会ってないよ」',a:2,tr:3,g:'ok',r:['S','…そうなんだ','neutral'],
+   c:'誠実ではある。でもこのタイミングだと、ちょっと重く聞こえることも。'}],
+ next:'invite'},
+
+invite:{ch:'第4話　2回目',bg:'street',place:'夜の帰り道',q:'このあと',mood:'blush',
+ lines:[['N','バーを出た。日付が変わる少し前。']],
+ choices:[
+  {t:'「まだ一緒にいたい。うち、ここから歩いて10分なんだけど」',
+   dyn:s=>(s.a>=65&&s.t>=40)?{a:5,g:'good',r:['S','…うん。行く','blush'],next:'home1'}:{a:0,g:'ok',r:['S','今日は帰る。…でも、また誘って','neutral'],next:'declined'},
+   c:'はっきり誘うのは、それだけで好印象。行けるかどうかは、それまでの積み重ね次第。'},
+  {t:'終電の話はせず、ゆっくり歩いて相手の反応を見る',
+   dyn:s=>(s.a>=60&&s.t>=40)?{a:5,g:'good',r:['S','…ねえ、もう終電ないよ？（笑）','blush'],next:'home1'}:{a:0,g:'ok',r:['S','あ、そろそろ帰らなきゃ','neutral'],next:'third'},
+   c:'女が自分から「終電ないよ」と言うのは、だいたいOKのサイン。言わなければ、今日はそこまで。'},
+  {t:'タクシーを止めて「気をつけてね」と送り出す',a:0,tr:5,g:'ok',r:['S','ありがと。…着いたら連絡するね','smile'],
+   c:'紳士的。でも好意は伝わってないかも。',next:'third'}]},
+
+declined:{ch:'第4話　2回目',bg:'street',place:'夜の帰り道',q:'断られたとき',mood:'neutral',
+ lines:[['N','断られた。']],
+ choices:[
+  {t:'「了解！ 気をつけてね」とあっさり送る',a:5,tr:12,g:'good',r:['S','…ちゃんと引いてくれる人、ほんとに少ないんだよ','smile'],
+   c:'アプリ疲れの女がいちばん見てるのはここ。',next:'third'},
+  {t:'「じゃあ、もう一杯だけどこかで飲もうよ」と粘る',a:-6,tr:-15,g:'bad',r:['S','…今日はほんとに帰る','troubled'],
+   c:'一回断ったのに粘られると、「結局この人も同じか」って思われる。',next:'mEndBad'},
+  {t:'「そっか、残念…」としょんぼりする',a:-3,g:'ok',r:['S','…なんかごめんね','troubled'],
+   c:'気持ちはわかるけど、相手に罪悪感を渡さないで。',next:'third'}]},
+
+third:{ch:'最終話',bg:'cafe',place:'朝のカフェ',q:'告白',mood:'smile',
+ lines:[
+  ['N','3回目。沙耶さんの夜勤明けに、朝ごはんを一緒に食べる約束をした。'],
+  ['S','夜勤明けの朝ごはん、誰かと食べるの久しぶり']],
+ choices:[
+  {t:'「沙耶さん。僕、アプリ消そうと思ってる。付き合ってください」',a:10,tr:5,g:'good',
+   dyn:s=>(s.a>=55&&s.t>=40)?{r:['S','…私も、消そうかなって思ってた','blush'],next:'mEndGood'}:{r:['S','ごめん。まだ決められない','troubled'],next:'mEndFriend'},
+   c:'「アプリ消す」は、アプリ恋愛でいちばん伝わる本気のサイン。'},
+  {t:'「僕たちって、どういう関係なんだろうね」',a:-3,g:'ok',r:['S','…どういう関係なんだろうね','neutral'],
+   c:'答えを相手に出させるのはずるい。自分の気持ちを先に。',next:'mEndAmb'},
+  {t:'何も言わず、次の約束だけする',a:0,g:'ok',r:['S','うん、また','neutral'],
+   c:'アプリでは、はっきりしない人から順に「その他大勢」に戻っていく。',next:'mEndFriend'}]},
+
+home1:{ch:'第5話　夜',bg:'room',place:'{name}の部屋',q:'部屋に着いて',mood:'smile',
+ lines:[
+  ['N','部屋に着いた。沙耶さんは、部屋をぐるっと見回した。'],
+  ['S','へえ、意外と片付いてる（笑）']],
+ choices:[
+  {t:'「頑張って片付けた（笑）」',a:8,tr:5,g:'good',r:['S','正直（笑）','smile'],
+   c:'正直に言われると、かわいいと思っちゃう。'},
+  {t:'「いつもこんな感じだよ」',a:0,g:'ok',r:['S','ふーん？（笑）','smirk'],
+   c:'見栄。たぶんバレてる。'},
+  {t:'「誰か来るかもって思って」',a:2,g:'ok',r:['S','…誰かって？（笑）','smirk'],
+   c:'正直だけど、言い方によっては「誰でもよかったの？」に聞こえる。'}],
+ next:'home2'},
+
+home2:{ch:'第5話　夜',bg:'room',place:'{name}の部屋',q:'キス',mood:'blush',
+ lines:[
+  ['N','ソファで並んで、二杯目のグラス。'],
+  ['N','会話が途切れて、沙耶さんがグラスを置いた。']],
+ choices:[
+  {t:'ゆっくり顔を近づける',a:10,tr:5,g:'good',r:['N','（沙耶さんは、目を閉じた）','blush'],
+   c:'グラスを置いたのはサイン。言葉はいらない。'},
+  {t:'沙耶さんの髪に触れて、「…きれい」とつぶやく',a:7,g:'good',r:['S','…なにそれ（笑）','blush'],
+   c:'一言添えるのもアリ。ただ、言い慣れてない台詞はぎこちなくなりがち。'},
+  {t:'「キスしていい？」と聞く',a:-3,g:'ok',r:['S','…聞かないでよ（笑）','smile'],
+   c:'聞かれると、答えなきゃいけなくて恥ずかしい。'}],
+ next:'home3'},
+
+home3:{ch:'第5話　夜',bg:'room',place:'{name}の部屋',q:'ゴム',mood:'blush',
+ lines:[
+  ['N','距離が近づく。ふいに、沙耶さんが小さな声で聞いた。'],
+  ['S','…ゴム、ある？']],
+ choices:[
+  {t:'「あるよ」',a:5,tr:10,g:'good',r:['S','…よかった','blush'],
+   c:'即答できるのがいちばん。看護師の彼女は、そこ絶対見てる。'},
+  {t:'「ない…コンビニ行ってくる！」',a:0,tr:5,g:'ok',r:['S','（笑）いってらっしゃい','smile'],
+   c:'正直に買いに行くのは正解。でも、ムードはちょっと途切れる。'},
+  {t:'「ごめん、ない。…今日はやめとく？」',a:-3,tr:5,g:'ok',r:['S','…いや、買いに行こうよ（笑）','smile'],
+   c:'誠実。でも、そこで止まられると、こっちからは言い出しにくい。'}],
+ next:'fade'},
+
+fade:{ch:'第5話　夜',bg:'black',place:'',her:null,
+ lines:[['N','——その夜のことは、二人だけの秘密。']],
+ choices:[{t:'朝を迎える',g:'good',c:'アプリで出会った相手との関係は、翌朝の態度で決まる。',next:'morning'}]},
+
+morning:{ch:'最終話',bg:'morning',place:'翌朝',q:'翌朝',mood:'smile',
+ lines:[
+  ['N','翌朝。'],
+  ['S','…おはよ。夜勤明けより眠い（笑）']],
+ choices:[
+  {t:'「ちゃんと付き合いたい。アプリ、今ここで消すね」',a:10,tr:10,g:'good',
+   dyn:s=>s.a>=50?{r:['S','…じゃあ、私も消す。せーので','blush'],next:'mEndTrue'}:{r:['S','…ちょっと考えさせて','neutral'],next:'mEndAmb'},
+   c:'言葉と行動、両方で見せる。'},
+  {t:'「朝ごはん食べに行こ」と自然に過ごして、夜にLINEで「付き合ってほしい」と送る',a:5,g:'ok',
+   dyn:s=>s.a>=60?{r:['S','（LINE）…うん。私も同じこと思ってた','smile'],next:'mEndGood'}:{r:['S','（LINE）ちょっと考えさせて','neutral'],next:'mEndAmb'},
+   c:'悪くない。でも、顔を見て言えたほうが確実に響く。'},
+  {t:'帰り道、なんとなくアプリを開いて他の子に返信する',a:-20,tr:-40,g:'bad',r:['N','（数時間後。沙耶さんの画面には、{name}の「オンライン」が表示されていた）'],
+   c:'アプリのログイン状態は、相手から見える。一晩過ごした直後の「オンライン」は、言葉より雄弁。',next:'mEndOnline'}]},
+
+mEndTrue:{ending:true,tone:'good',rank:'TRUE END',title:'アプリを消した日',
+ text:['二人で「せーの」でアプリを消した。沙耶さんは「これ、ちょっと儀式っぽいね」と笑った。',
+       '何十人のライバルがいても、勝ち方は地味だった。プロフィールを読む。その日の彼女に合わせる。引くときは引く。']},
+mEndGood:{ending:true,tone:'good',rank:'GOOD END',title:'夜勤明けの朝ごはん',
+ text:['焦らず会ったことが、アプリ疲れの彼女には何より響いていた。',
+       '「ちゃんと引いてくれる人」は、思っているより少ない。だからこそ、それが武器になる。']},
+mEndFriend:{ending:true,tone:'normal',rank:'NORMAL END',title:'その他大勢',
+ text:['しばらくして、沙耶さんのアカウントは退会済みになっていた。誰かと付き合ったのかもしれない。',
+       'アプリでは、はっきりしない人から順に埋もれていく。']},
+mEndAmb:{ending:true,tone:'normal',rank:'NORMAL END',title:'名前のない関係',
+ text:['その後も時々会った。でも、沙耶さんのアプリはずっとログイン中のままだった。',
+       '関係に名前をつけるのは、言い出した方の勇気。']},
+mEndGhost:{ending:true,tone:'normal',rank:'NORMAL END',title:'埋もれたメッセージ',
+ text:['ある日、トーク画面に「お相手は退会しました」の文字。',
+       '最初の写真とメッセージで差がつかないと、会う前に終わる。それがアプリの現実。']},
+mEndBad:{ending:true,tone:'bad',rank:'BAD END',title:'ブロック',
+ text:['トーク画面は、もう開けなかった。',
+       'アプリで会う女は、最初から最悪の可能性を考えて来ている。その不安を一回でも裏付けたら、おしまい。']},
+mEndOnline:{ending:true,tone:'bad',rank:'BAD END',title:'オンライン中',
+ text:['「さっきまで一緒にいたのに、もうログインしてるんだね」。それが最後のメッセージだった。',
+       '関係を持ったあとの行動は、全部見られている。']}
+ }
+};
+
+// ============================================================
+// Scenario 3 — 上級：癖のある女（判定はエンディングまで非表示）
+// ============================================================
+const ADVANCED = {
+ id:'advanced', tier:'上級', lv:3, title:'カウンターの向こう側', her:'R', start:'r1', hide:2,
+ who:'霧島 玲（33）バーテンダー',
+ desc:'口説かれ慣れた毒舌バーテンダー。褒め言葉も質問攻めも聞き飽きている。数値も判定も隠れた状態で、彼女の反応だけを頼りに進む。',
+ meters:['興味','信頼'],
+ lessons:[
+  ['褒め言葉は慣れた相手に効かない','相手そのものより、相手が大事にしているもの（店・仕事）を見る。'],
+  ['正面からの正直さが刺さる','下心を隠すと「よくいる客」。隠さず、押し付けない。'],
+  ['不格好さを笑える自己開示','自虐とは違う。自分の弱さを笑い話として差し出す。'],
+  ['いじりには同じ軽さで返す','萎縮しない。やり返すなら笑える範囲で。'],
+  ['相手のルールは壊さない','理由を聞いて、ルールの外で会う道を出す。'],
+  ['決めすぎない','主導権を握りたい女には、プランに余白を残す。'],
+  ['条件を出されたら、自分の気持ちも言う','「今夜だけ」に期待を隠して乗らない。断るのもアリ。'],
+  ['リードは相手に任せていい','慣れてないなら、張り切るより身を任せる。']],
+ nodes:{
+r1:{ch:'第1話　初来店',bg:'bar',place:'路地裏のバー「灯台」',q:'第一声',mood:'neutral',
+ lines:[
+  ['N','会社近くの路地裏。カウンター8席だけのバー。'],
+  ['N','健太いわく「あそこのバーテン、美人だけど誰も落とせない」。…来てしまった。'],
+  ['R','いらっしゃい。初めてだね。何にする？']],
+ choices:[
+  {t:'「おすすめで。…あと、お姉さんすごく綺麗ですね」',a:-5,g:'ok',r:['R','ありがと。今日4人目','smirk'],
+   c:'初級なら褒め言葉は有効。でも褒められ慣れた女には、外見を褒めるほど「その他大勢」に埋もれる。'},
+  {t:'「ジントニックを。…このカウンター、いい木ですね。何年やってるんですか？」',a:5,tr:3,g:'ok',r:['R','…へえ、そこ見る人珍しい。8年','neutral'],
+   c:'相手が大事にしてるものを見るのはいい手。ただ、やや無難。記憶に残るには、もう一押し。'},
+  {t:'「正直に言うと、友達から『誰も落とせないバーテンさんがいる』って聞いて来ました」',a:12,g:'good',r:['R','（笑）正直すぎ。…で、落としに来たの？','smirk'],
+   c:'口説かれ慣れた女には、正面からの正直さが刺さる。下心を隠すと、毎晩見てる「よくいる客」と同じ。'}],
+ next:'r2'},
+
+r2:{ch:'第1話　初来店',bg:'bar',place:'路地裏のバー「灯台」',q:'つかみ',mood:'smirk',
+ lines:[['R','で、私に会いに来た人は、何を話してくれるの？ つまんなかったら一杯で帰ってもらうけど']],
+ choices:[
+  {t:'「休みの日は何してるんですか？ 趣味とか」',a:-6,g:'ok',r:['R','…面接？','neutral'],
+   c:'初級で正解だった「質問」も、この人には面接。慣れてる女は、質問の意図まで読んでくる。'},
+  {t:'「面白い話は持ってないです。ただ29年彼女いなくて、ここ入る前に店の前を3周しました」',a:12,tr:5,g:'good',r:['R','…3周（笑）。それは面白い','smile'],
+   c:'完璧に見せようとするより、不格好さを笑える人が強い。フォローを求める自虐じゃなくて、笑い話として差し出してるのがポイント。'},
+  {t:'「玲さんこそ、なんで誰とも付き合わないんですか？」',a:3,tr:-5,g:'ok',r:['R','初対面でそれ聞く？ …まあ、度胸は認める','neutral'],
+   c:'踏み込む度胸はいい。でも初日で地雷かもしれないところに触れるのは早い。'}],
+ next:'r3'},
+
+r3:{ch:'第1話　初来店',bg:'bar',place:'路地裏のバー「灯台」',q:'いじられたとき',mood:'smirk',
+ lines:[['R','ていうかそのシャツ、今日のために買ったでしょ。袖に折り目ついてる']],
+ choices:[
+  {t:'「す、すみません…」と赤くなって縮こまる',a:-3,g:'ok',r:['R','謝んなくていいって。冗談','neutral'],
+   c:'いじりに萎縮すると会話が止まる。彼女は「言葉で遊べる相手か」を見てる。'},
+  {t:'「バレました？ 店員さんに『これなら絶対いける』って言われたんで、責任は店員さんにあります」',a:10,tr:5,g:'good',r:['R','（笑）返しうまいじゃん','smile'],
+   c:'いじりには同じくらいの軽さで返す。「この人とは言葉で遊べる」と思わせたら勝ち。'},
+  {t:'「玲さんこそ、そのピアス、今日気合い入ってません？」とやり返す',
+   dyn:s=>s.v==='A'?{a:6,g:'good',r:['R','（笑）言うじゃん。…まあ、ちょっとね','smirk']}:{a:-2,g:'ok',r:['R','…別に。いつもこれだけど','cold']},
+   c:'やり返しは、ハマれば一気に距離が縮む。外すと、ただの生意気な客。'}],
+ next:'r4'},
+
+r4:{ch:'第2話　常連',bg:'bar',place:'路地裏のバー「灯台」',q:'好意の見せ方',mood:'neutral',
+ lines:[
+  ['N','それから週に一度、通うようになった。'],
+  ['N','5回目の水曜日。客は{name}だけだった。'],
+  ['R','…ねえ、なんで毎週来るの？ 私目当て？']],
+ choices:[
+  {t:'「いや、お酒が好きで…」とごまかす',a:-5,g:'ok',r:['R','ふーん。つまんない','cold'],
+   c:'癖のある女ほど、ごまかしを嫌う。最初に正直だった分、ここで引くと落差が大きい。'},
+  {t:'「半分はそう。もう半分は、ここで飲むのが一週間でいちばん好きな時間だから」',a:12,tr:10,g:'good',r:['R','…正直か','blush'],
+   c:'好意を隠さず、でも押し付けない。「半分」で、相手が受け流す余地を残してる。'},
+  {t:'「はい、玲さん目当てです！」と言い切る',a:4,g:'ok',r:['R','（笑）潔いね','smirk'],
+   c:'嫌いじゃない。でも全部言い切ると、相手にボールを返す隙がない。'}],
+ next:'r5'},
+
+r5:{ch:'第2話　常連',bg:'bar',place:'路地裏のバー「灯台」',q:'相手のルール',mood:'troubled',
+ lines:[
+  ['N','グラスを拭きながら、玲さんがぽつりと言った。'],
+  ['R','…昔さ、お客さんと付き合って、別れたあと店まで来られて大変だったことがあるの。だから、客とはそういうのナシにしてる']],
+ choices:[
+  {t:'「そっか。じゃあ、客じゃない日に会えませんか。店休日の月曜とか、玲さんの好きな店で」',a:10,tr:15,g:'good',r:['R','…理屈っぽい。でも、嫌いじゃない','smile'],
+   c:'ルールを壊すんじゃなくて、ルールの外の道を出す。場所を相手に決めてもらうのも安心材料。'},
+  {t:'「僕はそんなことしません。信じてください」',a:0,tr:-5,g:'ok',r:['R','みんなそう言うの','neutral'],
+   c:'「信じて」は言葉では届かない。'},
+  {t:'「じゃあ僕は、ずっと客のままでいいです」',a:-3,tr:5,g:'ok',r:['R','…それはそれで、つまんないね','neutral'],
+   c:'健気。でも、それじゃ関係は一歩も進まない。'}],
+ next:s=>s.a<38?'rEndRegular':'r6'},
+
+r6:{ch:'第3話　月曜日',bg:'izakaya',place:'玲の行きつけの立ち飲み屋',q:'店の外',mood:'smile',
+ lines:[
+  ['N','月曜。玲さんが指定したのは、昭和の空気が残る立ち飲み屋だった。'],
+  ['R','カウンターの内側じゃない場所で飲めるの、ここくらいなんだよね。…で、今日は何しに来たの？']],
+ choices:[
+  {t:'「バーテンじゃないときの玲さんを見に」',a:10,tr:8,g:'good',r:['R','…キザ。でも、今日は聞かなかったことにしてあげる','blush'],
+   c:'店の内と外で顔が違う女には、「外の顔」に興味があると伝えるのが効く。'},
+  {t:'2軒目・3軒目まで予約済みのプランを見せる',a:-3,g:'ok',r:['R','重っ（笑）。今日は私が連れ回す日だから','smirk'],
+   c:'初級では「具体的なプラン」が正解だった。でも主導権を握りたい女には、決めすぎは窮屈。'},
+  {t:'「いつもみたいに、いじってください」',a:2,g:'ok',r:['R','…Mなの？','neutral'],
+   c:'受け身すぎる。たまにはこっちから仕掛けて。'}],
+ next:'r7'},
+
+r7:{ch:'第3話　月曜日',bg:'street',place:'夜の路地',q:'彼女の条件',mood:'blush',
+ lines:[
+  ['N','3軒目を出たところで、玲さんが立ち止まった。'],
+  ['R','…うち、ここから近いんだよね。来る？'],
+  ['R','先に言っとく。今夜だけかもしれないし、付き合うとかは別の話。それでいいなら']],
+ choices:[
+  {t:'「行きたい。…でも一個だけ。僕は今夜だけじゃなくて、玲さんのことちゃんと好きです。それでもよければ」',a:10,tr:15,g:'good',set:{honest:true},r:['R','…ずるい言い方。いいよ、知ってて誘ってるから','blush'],
+   c:'相手が条件をはっきり言ったなら、こっちも気持ちをはっきり言う。お互い知った上で、がいちばん後腐れない。',next:'rHome1'},
+  {t:'「もちろん」と即答する（内心では、これで付き合えると思っている）',a:0,tr:-5,g:'ok',r:['R','…ふーん。じゃ、行こ','neutral'],
+   c:'期待を隠したまま条件に乗ると、あとで「話が違う」になるのは自分のほう。',next:'rHome1'},
+  {t:'「…今夜だけなら、やめときます。僕は玲さんとちゃんと付き合いたいので」',
+   dyn:s=>s.t>=28?{a:5,tr:10,g:'good',r:['R','…そっか。じゃあ、来週の月曜も空けといて','blush'],next:'rEndWait'}
+                 :{a:0,g:'ok',r:['R','…そっか。真面目だね。じゃ、また店で','neutral'],next:'rEndRegular'},
+   c:'自分の気持ちに正直に断るのも、立派な選択。信頼が貯まっていれば、それが一番効く。'}]},
+
+rHome1:{ch:'第4話　夜',bg:'room',place:'玲の部屋',q:'見栄',mood:'smirk',
+ lines:[
+  ['N','玲さんの部屋は、本とレコードで埋まっていた。'],
+  ['R','…慣れてないでしょ。顔に書いてある']],
+ choices:[
+  {t:'「…はい。正直、初めてです」',a:5,tr:15,g:'good',r:['R','知ってた（笑）。ちゃんと言えるの、えらい','smile'],
+   c:'見栄より正直に。初めてだと言えば、相手もペースを合わせられる。'},
+  {t:'「いや、まあ、それなりに」と見栄を張る',a:-5,tr:-10,g:'ok',r:['R','ふーん…？','neutral'],
+   c:'見栄はだいたいすぐバレる。'},
+  {t:'黙ってうつむく',a:0,g:'ok',r:['R','…そっか','neutral'],
+   c:'伝わってはいる。でも、言えたほうが二人とも楽になる。'}],
+ next:'rHome2'},
+
+rHome2:{ch:'第4話　夜',bg:'room',place:'玲の部屋',q:'リード',mood:'blush',
+ lines:[['R','…ほら。こっち来て']],
+ choices:[
+  {t:'素直に隣に行って、玲さんのペースに任せる',a:8,tr:8,g:'good',r:['R','…いい子（笑）','blush'],
+   c:'主導権を握りたい女には、身を任せるのが正解。「男がリードしなきゃ」は思い込み。'},
+  {t:'「いや、今日は俺がリードする」と張り切る',a:-5,g:'ok',r:['R','…力入りすぎ（笑）','smirk'],
+   c:'気持ちはわかる。でも慣れてないのに張り切ると空回りする。'},
+  {t:'緊張で固まってしまう',a:0,g:'ok',r:['R','…いいよ、ゆっくりで','smile'],
+   c:'彼女は待ってくれる。けど、一歩くらいは自分から近づきたい。'}],
+ next:'rFade'},
+
+rFade:{ch:'第4話　夜',bg:'black',place:'',her:null,
+ lines:[['N','——その夜のことは、二人だけの秘密。'],['N','（ゴムは、玲さんの引き出しに当たり前のように入っていた）']],
+ choices:[{t:'朝を迎える',g:'good',c:'初めてでうまくいかないのは普通。笑い合えればそれでいい。ゴムは相手任せにせず、自分でも持っておこう。',next:'rMorning'}]},
+
+rMorning:{ch:'最終話',bg:'morning',place:'翌朝',q:'翌朝',mood:'smile',
+ lines:s=>s.flags.honest
+  ?[['N','翌朝。レコードの針が、とっくに止まっていた。'],['R','…おはよ。で、昨日言ってたこと、まだ有効？']]
+  :[['N','翌朝。レコードの針が、とっくに止まっていた。'],['R','…おはよ。コーヒー飲んだら帰りな']],
+ choices:[
+  {t:'「有効です。玲さんのこと、好きです」',a:10,tr:5,g:'good',
+   dyn:s=>(s.flags.honest&&s.a>=60)?{r:['R','…客とはナシって言ったのに。月曜日、もう客じゃなかったね','blush'],next:'rEndTrue'}
+        :s.flags.honest?{r:['R','…もう少し、月曜日に飲む関係でいさせて','neutral'],next:'rEndOne'}
+        :{r:['R','…それ、昨日のうちに言ってほしかったな','troubled'],next:'rEndOne'},
+   c:'彼女の条件を知った上で、もう一度気持ちを伝える。前の夜に正直だったかどうかで、この言葉の重さが変わる。'},
+  {t:'「昨日は今夜だけって話だったし、帰ります。ごちそうさまでした」',a:0,tr:5,g:'ok',r:['R','…律儀だね','neutral'],
+   c:'約束を守るのは誠実。でも好きなら、言わないまま去るのはもったいない。',next:'rEndOne'},
+  {t:'「次いつ会える？」とすぐ聞く',a:-8,tr:-5,g:'ok',r:['R','…がっつかない（笑）','smirk'],
+   c:'一晩で距離が縮んだと思っても、彼女のペースは変わってない。',next:'rEndRegular'}]},
+
+rEndTrue:{ending:true,tone:'good',rank:'TRUE END',title:'カウンターの内側',
+ text:['今、{name}は店休日の月曜日に、カウンターの内側でグラスの拭き方を教わっている。',
+       '彼女を落としたのはテクニックじゃなかった。店の前を3周したこと、いじりに笑って返したこと、ルールを壊さなかったこと。そして、先に気持ちを言ったこと。']},
+rEndWait:{ending:true,tone:'good',rank:'GOOD END',title:'月曜日の約束',
+ text:['あの夜、行かなかった。それから毎週月曜日、二人で立ち飲み屋に行っている。',
+       '3か月後、「付き合う？」と言ったのは玲さんのほうだった。']},
+rEndOne:{ending:true,tone:'normal',rank:'NORMAL END',title:'一晩だけの約束',
+ text:['玲さんとは、それきりだった。店に行けば、前と同じように笑ってくれる。',
+       '条件つきの誘いに乗るなら、自分の気持ちも同じテーブルに出すこと。後から出しても、もう遅い。']},
+rEndRegular:{ending:true,tone:'normal',rank:'NORMAL END',title:'ただの常連',
+ text:['{name}は今も水曜日に通っている。玲さんは今日も、誰かの褒め言葉を軽く受け流している。',
+       '口説かれ慣れた女の「その他大勢」から抜けるには、無難じゃなく、記憶に残る正直さが必要だった。']}
+ }
+};
+
+// ============================================================
+// Scenario 4 — 最上級：ヤリチンへの道（判定はエンディングまで非表示）
+// ============================================================
+const EXPERT = {
+ id:'expert', tier:'最上級', lv:4, title:'ヤリチンへの道', her:'M', start:'y1', counter:'経験人数', hide:2,
+ who:'美咲（26）・由佳（28）／師匠タク',
+ desc:'童貞が3か月で「遊べる男」を目指す。数字を稼ぐ近道はだいたい嘘。数値も判定も隠れた状態で、評判を落とさず遊び切れるか。',
+ meters:['魅力','評判'],
+ lessons:[
+  ['テクニックより自分磨きと場数','台本どおりの口説き方は、慣れた女にはすぐバレる。'],
+  ['目的は正直に','遊びたいなら隠さない。同じ温度の相手とだけ遊ぶ。'],
+  ['嘘で取ったOKは必ず返ってくる','「真剣」を装うと、いつか全部バレる。'],
+  ['ゴムは当たり前','即答できない男は、遊び慣れた女に一瞬で切られる。'],
+  ['定期的に性病検査','相手が複数いるなら習慣に。保健所なら匿名・無料のところが多い。'],
+  ['気持ちが変わったら話し合う','「最初に言ったじゃん」で片付けない。'],
+  ['評判は必ず回る','遊び人の世界は狭い。誠実さは、数より長く残る。']],
+ nodes:{
+y1:{ch:'第1話　決意',bg:'room',place:'自室',her:null,q:'最初の一歩',
+ lines:[
+  ['N','{name}、29歳。決めた。童貞を卒業して、遊べる男になる。'],
+  ['N','相談したのは、会社の先輩で有名な遊び人、タクさん。'],
+  ['T','お前が？ …まあいい。遊ぶのは自由だ。ただ俺のルールは三つ。嘘をつかない、雑に扱わない、ゴムはつける'],
+  ['N','まずは何から始める？']],
+ choices:[
+  {t:'ネットで評判の「恋愛テクニック」の教材を買って研究する',a:3,tr:-8,g:'ok',set:{pua:true},r:['T','…それ、台本通りに喋ってるやつ、女はすぐ気づくぞ'],
+   c:'型を知るのは悪くない。でも台本どおりの口説き方は、慣れた女ほど見抜く。そして「あの人、例のやつ使ってくる」って共有される。'},
+  {t:'筋トレ・服・髪を整えて、とにかく人と話す場数を増やす',a:12,g:'good',r:['T','地味だろ？ でも結局それなんだよ'],
+   c:'遊べる男の正体は、話していて楽しい・見た目に気を遣っている・余裕がある、の3つ。'},
+  {t:'マッチングアプリに「真剣交際希望」と書いて登録する（そのほうが会えそう）',a:3,tr:-10,g:'bad',set:{liar:true},r:['T','…遊びたいのに真剣って書くの？'],
+   c:'会える数は増える。でも、真剣な人の時間を奪うことになる。'}],
+ next:'y2'},
+
+y2:{ch:'第2話　バー',bg:'bar',place:'週末のバー',q:'声のかけ方',mood:'neutral',
+ lines:[
+  ['N','1か月後、タクさんに連れられて週末のバーへ。'],
+  ['N','カウンターで一人、ウイスキーを飲んでいる女性がいた。'],
+  ['M','…なに？ 声かけるなら、つまんないのはナシね']],
+ choices:[
+  {t:'「どこかで会ったことありません？」',a:-3,g:'ok',r:['M','ないね（笑）','smirk'],
+   c:'使い古された台詞は「テンプレの人」と思われるだけ。'},
+  {t:'「それ何飲んでるんですか？ 次、頼もうか迷ってて」',a:10,g:'good',r:['M','ラフロイグ。くせ強いよ？ 飲める？','smile'],
+   c:'声かけは、その場にあるものから。自然な一言がいちばんハードルが低い。'},
+  {t:'「一人で飲んでるの珍しいですね。待ち合わせ、すっぽかされました？」',
+   dyn:s=>s.v==='A'?{a:8,g:'good',r:['M','（笑）失礼な。…半分当たり','smirk']}:{a:-4,tr:-3,g:'ok',r:['M','…は？ 一人で飲むのが好きなんだけど','cold']},
+   c:'軽いいじりは、ハマれば一気に距離が縮む。外すとただの失礼な人。相手の機嫌と空気を読めるか。'}],
+ next:'y3'},
+
+y3:{ch:'第2話　バー',bg:'bar',place:'週末のバー',q:'目的',mood:'smile',
+ lines:[
+  ['N','話は思いのほか弾んだ。美咲さん、26歳、アパレル勤務。'],
+  ['M','で、君は今日何しに来たの？ 彼女探し？']],
+ choices:[
+  {t:'「正直に言うと、恋人探しっていうより、楽しく飲んで、気が合えばって感じ」',a:8,tr:10,g:'good',r:['M','正直だね。…私も今そんな感じ','smile'],
+   c:'遊び目的なら、それを隠さない。同じ温度の相手とだけ遊ぶのが、後腐れない遊び方。'},
+  {t:'「真剣な出会いを探してます」',a:0,tr:-10,g:'bad',set:{liar:true},r:['M','ふーん、真面目なんだ','neutral'],
+   c:'遊び慣れた女に「真剣」を装うと、だいたい嘘だってバレてる。'},
+  {t:'「さあ？ 美咲さん次第かな」',a:4,g:'ok',r:['M','うわ、ずるい答え（笑）','smirk'],
+   c:'思わせぶりは一時的に効く。ずるいけど、嫌いじゃない女もいる。'}],
+ next:'y4'},
+
+y4:{ch:'第2話　バー',bg:'bar',place:'週末のバー',q:'このあと',mood:'blush',
+ lines:[
+  ['N','2時間後。美咲さんはグラスを置いて笑った。'],
+  ['M','…このあと、どうする？']],
+ choices:[
+  {t:'「うちで飲み直さない？ 気分じゃなかったら全然いいけど」',
+   dyn:s=>(s.a>=25&&!s.flags.pua)?{a:5,tr:5,g:'good',r:['M','いいよ。行こ','blush'],next:'y5'}
+                                 :{a:0,tr:3,g:'ok',r:['M','今日はいいや。また飲も','neutral'],next:'y6'},
+   c:'カジュアルな関係でも、誘い方の基本は同じ。はっきり、軽く。'},
+  {t:'「このあとカラオケでも行きます？」',a:3,g:'ok',r:['M','カラオケかぁ…今日はいいかな。また飲も','neutral'],
+   c:'彼女が「このあとどうする？」って聞いたのは、そういう意味じゃなかった。',next:'y6'},
+  {t:'連絡先だけ交換して解散',a:0,tr:3,g:'ok',r:['M','おっけー。また飲も','smile'],
+   c:'無難。いい関係の入り口にはなる。',next:'y6'}]},
+
+y5:{ch:'第2話　バー',bg:'room',place:'{name}の部屋',q:'ゴム',mood:'smirk',
+ lines:[['M','先に言っとくね。ゴムないなら、しないから']],
+ choices:[
+  {t:'「ある」とだけ言って、引き出しから出す',a:3,tr:10,g:'good',set:{misaki:true},n:1,r:['N','（その夜、{name}は童貞を卒業した）'],
+   c:'遊ぶならなおさら、持ってて当たり前。即答できる男は、それだけで信用される。'},
+  {t:'「ある。…あと正直、初めてなんだよね」',a:5,tr:8,g:'good',set:{misaki:true},n:1,r:['M','（笑）いいよ。素直な人、嫌いじゃない','smile'],
+   c:'初めてって言えるのは、むしろ強み。'},
+  {t:'慣れてるフリをして「当然でしょ」と余裕ぶる',a:0,tr:-3,g:'ok',set:{misaki:true},n:1,r:['M','…ふーん？（笑）','smirk'],
+   c:'見栄はだいたいバレる。バレても続くけど、ちょっと笑われる。'}],
+ next:'y6'},
+
+y6:{ch:'第3話　アプリ',bg:'phone',place:'自室',her:null,q:'プロフィール',
+ lines:[['N','次はアプリでも出会いを広げる。プロフィールの「探している関係」の欄。']],
+ choices:[
+  {t:'「真剣交際」を選ぶ（マッチ数が増えるから）',a:3,tr:-10,g:'bad',set:{liar:true},r:['N','（マッチ数は増えた。真剣な人ばかりから）'],
+   c:'マッチ数のための嘘は、会ったあとに必ず相手を傷つける。'},
+  {t:'「まずは飲み友達から」「気軽に会える人」と正直に書く',a:3,tr:8,g:'good',r:['N','（マッチ数は少ない。でも、話が早い相手ばかりだ）'],
+   c:'マッチ数は減る。でも目的が合う人とだけ会えるから、結果的に効率がいい。'},
+  {t:'空欄にしておく',a:0,g:'ok',r:['N','（いろんな人とマッチした）'],
+   c:'書かないのも一つの手。ただ、会ったら早めに目的を伝える必要がある。'}],
+ next:'y7'},
+
+y7:{ch:'第3話　アプリ',bg:'cafe',place:'駅前のカフェ',her:'Y',q:'真剣な相手',mood:'smile',
+ lines:[
+  ['N','アプリで会ったのは由佳さん、28歳、事務職。笑顔の柔らかい人だった。'],
+  ['Y','私、アプリ始めたばかりで…。{name}さんは、結婚とか考えてますか？']],
+ choices:[
+  {t:'「うん、いい人がいればすぐにでも」と合わせる',a:3,tr:-15,g:'bad',set:{liar:true},r:['Y','よかった…！ 私もです','blush'],
+   c:'相手は真剣。ここで合わせれば、嘘の上に関係ができる。',next:'y8'},
+  {t:'「正直に言うね。今は結婚とか真剣交際は考えてなくて、気軽に会える人を探してる。由佳さんが探してるものとは違うと思う」',a:0,tr:15,g:'good',r:['Y','…そっか。言ってくれてありがとう。じゃあ、今日はお茶だけで','neutral'],
+   c:'目的が違う相手とは、そこで線を引く。「今日はお茶だけ」で終われる人が、本当に余裕のある遊び人。',next:'y9'},
+  {t:'話をそらして、聞かなかったことにする',a:0,tr:-5,g:'ok',r:['Y','…？ あ、すみません、急に重かったですよね','troubled'],
+   c:'はぐらかしは嘘の一歩手前。相手は真剣に聞いてる。',next:'y9'}]},
+
+y8:{ch:'第3話　アプリ',bg:'street',place:'夜の帰り道',her:'Y',q:'嘘の続き',mood:'blush',
+ lines:[
+  ['N','由佳さんとは3回会った。彼女はすっかり{name}を「彼氏候補」として見ている。'],
+  ['Y','今日…{name}さんの家、行ってもいいですか？']],
+ choices:[
+  {t:'家に連れて帰る。真剣だと思わせたまま',a:0,tr:-30,g:'bad',set:{hurt:true},n:1,r:['N','（経験人数が、ひとつ増えた）'],
+   c:'数字は増えた。でも、彼女が本当のことを知ったときに傷つくのは彼女で、評判を失うのは自分。'},
+  {t:'「…ごめん。前に言ったこと、嘘だった。真剣交際は考えてない」と打ち明ける',a:0,tr:12,g:'good',set:{liar:false},r:['Y','…最低。でも、言ってくれてよかった','troubled'],
+   c:'遅くても、嘘を正すのは正しい。失ったものは大きいけど、これ以上傷つけずに済んだ。'},
+  {t:'「今日はやめとこう」とだけ言って、そのまま連絡を絶つ',a:0,tr:-5,g:'ok',r:['Y','…え？','troubled'],
+   c:'傷つける前に離れたのは、まだまし。でも説明なしに消えるのは、相手を混乱させる。'}],
+ next:'y9'},
+
+y9:{ch:'第4話　3か月後',bg:'izakaya',place:'タクさんと居酒屋',her:null,q:'検査',
+ onEnter:s=>{ s.n += s.flags.liar ? 4 : (s.a>=25 ? 2 : 1); },
+ lines:s=>[
+  ['N','3か月後。{name}の経験人数は{n}人になっていた。'],
+  ...(s.flags.liar?[['N','（「真剣交際」の嘘をついた分だけ、数字は伸びた）']]:[]),
+  ['T','調子いいらしいな。…で、検査は行ってるか？']],
+ choices:[
+  {t:'「検査？ ゴムしてるし大丈夫っすよ」',a:0,tr:-5,g:'bad',set:{noTest:true},r:['T','…それ、本気で言ってる？'],
+   c:'ゴムは万能じゃない。オーラルや肌の接触でうつる性病もある。相手が複数いるなら、定期検査はマナー。保健所なら匿名・無料のところが多い。'},
+  {t:'「先月、保健所で受けました。全部陰性っす」',a:0,tr:12,g:'good',r:['T','お、ちゃんとしてんな'],
+   c:'遊ぶ人ほど、検査は習慣に。結果を相手に言えるのは、信用にもなる。'},
+  {t:'「…行ってないです。今週行きます」',a:0,tr:5,g:'ok',r:['T','行け。今すぐ予約しろ'],
+   c:'気づいたときに行けばいい。'}],
+ next:'y10'},
+
+y10:{ch:'最終話',bg:'bar',place:'いつものバー',her:'M',q:'気持ちの変化',mood:'troubled',
+ lines:s=>[
+  ['N', s.flags.misaki ? '久しぶりに美咲と飲んだ。あの夜から、たまに会う関係が続いている。' : 'あの夜以来、たまに飲む仲になった美咲さん。'],
+  ['M','…ねえ。最近、他の子とも会ってるんでしょ？ 別にいいんだけどさ'],
+  ['M','私、ちょっと{name}のこと、本気になりかけてるかも']],
+ choices:[
+  {t:'「ありがとう。正直に言うと、今は誰か一人に決める気はない。それでも会いたいなら嬉しいけど、美咲がつらいなら、会うのはやめよう」',a:0,tr:15,g:'good',
+   dyn:s=>({next: s.flags.liar ? 'yEndKarma' : s.flags.noTest ? 'yEndSTI' : s.t>=40 ? 'yEndGentle' : 'yEndHalf',
+            r:['M','…ずるいくらい正直だね。少し考える','neutral']}),
+   c:'気持ちが変わった相手に、自分の状況を正直に伝えて、選択肢を返す。遊びを続けるなら、これが前提。'},
+  {t:'「俺も本気だよ」と言って、他の子とも会い続ける',a:0,tr:-25,g:'bad',set:{liar:true},r:['M','…ほんと？ うれしい','blush'],
+   c:'相手の本気を嘘で引き延ばす。いちばん深く人を傷つけるパターン。',next:'yEndKarma'},
+  {t:'「重いのはナシって、最初に言ったじゃん」',a:-5,tr:-15,g:'bad',r:['M','…そうだね。ごめん','troubled'],
+   dyn:s=>({next: s.flags.liar ? 'yEndKarma' : s.flags.noTest ? 'yEndSTI' : 'yEndHollow'}),
+   c:'最初の約束があっても、気持ちは変わる。変わったことを責めずに、もう一度話すのが筋。'},
+  {t:'「…実は、俺もそう。美咲だけにしたい」',a:5,tr:10,g:'good',
+   dyn:s=>({next: s.flags.liar ? 'yEndAlone' : s.flags.noTest ? 'yEndSTI' : s.t>=40 ? 'yEndHonmei' : 'yEndAlone',
+            r: s.t>=40&&!s.flags.liar ? ['M','…ほんとに？','blush'] : ['M','…それ、信じていいの？','troubled']}),
+   c:'遊んでたからこそ、本気になったら正直に言う。ただし、信じてもらえるかはそれまでの評判次第。'}]},
+
+yEndGentle:{ending:true,tone:'good',rank:'TRUE END',title:'誠実な遊び人',
+ text:['経験人数は{n}人。でも数字より大事なものが残った。会った誰にも、嘘をつかなかったこと。',
+       '美咲とは今も、いい飲み仲間だ。タクさんは言った。「な、遊びってのは、終わり方まで含めて遊びなんだよ」']},
+yEndHonmei:{ending:true,tone:'good',rank:'ANOTHER END',title:'遊び人、廃業',
+ text:['経験人数は{n}人で止まった。アプリは全部消した。',
+       '遊んでいた頃も嘘をつかなかったから、美咲は信じてくれた。遊び方の誠実さは、本気になったときの信用になる。']},
+yEndHalf:{ending:true,tone:'normal',rank:'NORMAL END',title:'それなりの夜',
+ text:['経験人数は{n}人。悪い噂はない。でも、特別に信用されているわけでもない。',
+       '小さなごまかしは、少しずつ評判を削る。']},
+yEndHollow:{ending:true,tone:'normal',rank:'NORMAL END',title:'空っぽの数字',
+ text:['経験人数は{n}人。美咲からの連絡は、それきり来なくなった。',
+       '数は増えた。でも、また会いたいと言ってくれる人はいない。']},
+yEndAlone:{ending:true,tone:'normal',rank:'NORMAL END',title:'信じてもらえなかった',
+ text:['「美咲だけにしたい」。その言葉は本心だった。でも、彼女は首を横に振った。',
+       '遊んでいた頃の嘘やごまかしが、本気の言葉の信用を削っていた。']},
+yEndKarma:{ending:true,tone:'bad',rank:'BAD END',title:'噂は回る',
+ text:['由佳と美咲には、共通の友達がいた。{name}のスクショは、あっという間にいくつものグループに回った。',
+       'アプリでもバーでも、もう誰も会ってくれない。経験人数{n}人。数字だけが残った。']},
+yEndSTI:{ending:true,tone:'bad',rank:'BAD END',title:'保健所からの電話',
+ text:['ある日、前に会った相手から連絡が来た。「性病うつってたみたい。検査行って」。',
+       '検査を受けていなかった{name}には、自分が誰にうつしたのか、もうわからない。']}
+ }
+};
+
+const SCEN = [BEGINNER, MIDDLE, ADVANCED, EXPERT];
+const SC = Object.fromEntries(SCEN.map(s=>[s.id,s]));
+
+// ============================================================
+// Engine
+// ============================================================
+const app = document.getElementById('app');
+const clamp = v => Math.max(0, Math.min(100, v));
+let S = null;            // game state (kept across hot reloads)
+let ui = {};
+let lines = [], li = 0, typing = null, phase = 'title', order = null;
+
+const fmt = s => String(s).replace(/\{name\}/g, (S && S.name) || 'ハルト').replace(/\{n\}/g, S ? S.n : 0);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const sc = () => SC[S.scen];
+const node = id => sc().nodes[id || S.node];
+
+function loadCleared(){ try{ return JSON.parse(localStorage.getItem('lastorder-cleared')||'{}'); }catch(e){ return {}; } }
+function saveCleared(scen, end){
+  try{ const c = loadCleared(); c[scen] = Array.from(new Set([...(c[scen]||[]), end])); localStorage.setItem('lastorder-cleared', JSON.stringify(c)); }catch(e){}
+}
+function loadName(){ try{ return localStorage.getItem('lastorder-name') || 'ハルト'; }catch(e){ return 'ハルト'; } }
+function saveName(n){ try{ localStorage.setItem('lastorder-name', n); }catch(e){} }
+
+function fresh(scen, name){ return {scen, name:name||'ハルト', a:0, t:0, n:0, flags:{}, log:[], node:null, v:Math.random()<.5?'A':'B'}; }
+const HIDE_LABEL = ['判定：その場で表示','判定：コメントのみ','判定：最後に答え合わせ'];
+
+function titleScreen(){
+  phase='title'; S=null;
+  const cleared = loadCleared();
+  const cards = SCEN.map(s=>{
+    const total = Object.values(s.nodes).filter(n=>n.ending).length;
+    const got = (cleared[s.id]||[]).length;
+    return `<button class="lv lv-${s.lv}" type="button" data-scen="${s.id}">
+      <div class="top"><span class="tier">${s.tier}</span><span class="stars">${'★'.repeat(s.lv)}${'☆'.repeat(4-s.lv)}</span></div>
+      <h3>${esc(s.title)}</h3>
+      <div class="who">${esc(s.who)}</div>
+      <p>${esc(s.desc)}</p>
+      <div class="foot"><span>${HIDE_LABEL[s.hide]}</span><span>エンディング <b>${got}/${total}</b></span></div>
+    </button>`;
+  }).join('');
+  app.innerHTML = `
+  <section class="title">
+    <div class="eyebrow">恋愛シミュレーション ／ 全4コース</div>
+    <h1>ラスト<br><em>オーダー</em></h1>
+    <p class="clock">PM 10:30 ― ラストオーダー、終電まで <b>あと90分</b></p>
+    <p class="lead">彼女いない歴＝年齢、29歳。出会いから、デート、夜の「このあと」、翌朝まで。女はそんなに単純じゃない。表情とサインを読んで、選んでください。</p>
+    <label class="namebox" for="pname">主人公の名前<input id="pname" maxlength="8" value="${esc(loadName())}" autocomplete="off"></label>
+    <div class="levels">${cards}</div>
+    <p class="note">解説役は、恋愛の本音をズバズバ言う女友達。難易度が上がるほど判定が隠れ、その日の彼女の機嫌や性格で正解が変わります。性的な描写はありません。</p>
+  </section>`;
+  app.querySelectorAll('.lv').forEach(b=>b.addEventListener('click', ()=>{
+    const n = document.getElementById('pname').value.trim() || 'ハルト';
+    saveName(n);
+    S = fresh(b.dataset.scen, n);
+    buildGame();
+    goto(sc().start);
+  }));
+  window.scrollTo(0,0);
+}
+
+function buildGame(){
+  const s = sc();
+  app.innerHTML = `
+  <div class="hud">
+    <div class="chapter"><span class="lvl">${s.tier}</span><span id="chap"></span></div>
+    <div class="meter m-aff"><span class="lbl">${s.meters[0]}</span><span class="bar"><i id="barA"></i></span><span class="num" id="numA">0</span></div>
+    <div class="meter m-tr"><span class="lbl">${s.meters[1]}</span><span class="bar"><i id="barT"></i></span><span class="num" id="numT">0</span></div>
+    ${s.counter?`<div class="meter counter"><span class="lbl">${s.counter}</span><b id="numN">0</b></div>`:''}
+  </div>
+  <div class="stage" id="stage">
+    <span class="place" id="place"></span>
+    <svg class="her hide" id="her" viewBox="0 0 200 320" role="img"></svg>
+  </div>
+  <div class="box" id="box">
+    <div class="name" id="name"></div>
+    <div class="text" id="text" tabindex="0" role="button" aria-live="polite"></div>
+    <div class="hint" id="hint">▼ タップで次へ</div>
+    <div class="choices" id="choices"></div>
+  </div>`;
+  ui = Object.fromEntries(['chap','barA','barT','numA','numT','numN','stage','place','her','box','name','text','hint','choices'].map(id=>[id,document.getElementById(id)]));
+  if(s.hide>=2) app.querySelectorAll('.m-aff,.m-tr').forEach(m=>m.classList.add('masked'));
+  ui.text.addEventListener('click', advance);
+  ui.stage.addEventListener('click', advance);
+  updateHud();
+}
+
+function updateHud(prevA, prevT, prevN){
+  const masked = sc().hide>=2;
+  ui.barA.style.width = (masked?0:S.a)+'%'; ui.numA.textContent = masked?'？':S.a;
+  ui.barT.style.width = (masked?0:S.t)+'%'; ui.numT.textContent = masked?'？':S.t;
+  if(ui.numN) ui.numN.textContent = S.n + '人';
+  if(sc().hide>=1) prevA = prevT = undefined;
+  if(prevA!==undefined) popDelta(ui.barA.closest('.meter'), S.a-prevA);
+  if(prevT!==undefined) popDelta(ui.barT.closest('.meter'), S.t-prevT);
+  if(prevN!==undefined && ui.numN) popDelta(ui.numN.closest('.meter'), S.n-prevN);
+}
+function popDelta(el, d){
+  if(!d) return;
+  const p = document.createElement('span');
+  p.className = 'pop ' + (d>0?'up':'down');
+  p.textContent = (d>0?'+':'') + d;
+  el.appendChild(p); setTimeout(()=>p.remove(), 1500);
+}
+
+function setScene(n){
+  ui.stage.className = 'stage bg-' + n.bg;
+  ui.place.textContent = fmt(n.place||'');
+  ui.place.hidden = !n.place;
+  ui.chap.textContent = n.ch;
+}
+function herKey(n){ return n.her===undefined ? sc().her : n.her; }
+function showHer(n, mood){
+  const k = herKey(n);
+  const on = !!k && n.bg!=='black';
+  ui.her.classList.toggle('hide', !on);
+  if(!on) return;
+  ui.her.innerHTML = drawHer(k, mood||'neutral', S.a);
+  ui.her.setAttribute('aria-label', CHARS[k].name);
+}
+
+function goto(id){
+  S.node = id; li = 0; order = null;
+  const n = node(id);
+  if(n.ending){ endingScreen(id, n); return; }
+  if(n.onEnter && !S.entered?.[id]){ S.entered = Object.assign({}, S.entered, {[id]:true}); n.onEnter(S); updateHud(); }
+  setScene(n);
+  lines = typeof n.lines==='function' ? n.lines(S) : n.lines;
+  phase = 'lines';
+  showLine();
+}
+
+function speak(who, txt, mood){
+  const n = node();
+  const name = fmt(WHO[who]||'');
+  ui.name.textContent = name || 'ナレーション';
+  ui.name.classList.toggle('narr', !name);
+  ui.name.classList.toggle('me', who==='H');
+  ui.text.classList.toggle('narr', !name);
+  showHer(n, mood || n.mood);
+  type(fmt(txt));
+}
+
+function type(str){
+  clearInterval(typing); typing=null;
+  ui.hint.hidden = true;
+  ui.text.dataset.full = str;
+  if(reduced){ ui.text.textContent = str; doneTyping(); return; }
+  let i = 0; ui.text.textContent = '';
+  typing = setInterval(()=>{
+    i += 1; ui.text.textContent = str.slice(0,i);
+    if(i>=str.length){ clearInterval(typing); typing=null; doneTyping(); }
+  }, 28);
+}
+function doneTyping(){
+  if(phase!=='lines') return;
+  if(li===lines.length-1){ ui.hint.hidden = true; showChoices(); }
+  else ui.hint.hidden = false;
+}
+
+function showLine(){
+  const [w,txt,mood] = lines[li];
+  ui.choices.innerHTML = '';
+  speak(w, txt, mood);
+}
+
+function advance(){
+  if(phase!=='lines' && phase!=='result') return;
+  if(typing){ clearInterval(typing); typing=null; ui.text.textContent = ui.text.dataset.full; doneTyping(); return; }
+  if(phase==='lines' && li < lines.length-1){ li++; showLine(); }
+}
+
+function shuffle(a){ const b=a.slice(); for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];} return b; }
+
+function showChoices(){
+  const n = node();
+  if(!order) order = n.choices.length>1 ? shuffle(n.choices.map((_,i)=>i)) : [0];
+  ui.choices.innerHTML = '';
+  order.forEach((ci,k)=>{
+    const c = n.choices[ci];
+    const b = document.createElement('button');
+    b.className = 'choice'; b.type = 'button';
+    b.innerHTML = `<span class="k">${n.choices.length>1?(k+1):'▶'}</span><span>${esc(fmt(c.t))}</span>`;
+    b.addEventListener('click', ()=>choose(ci));
+    ui.choices.appendChild(b);
+  });
+  phase = 'choices';
+}
+
+function choose(ci){
+  if(phase!=='choices') return;
+  const n = node();
+  const c = n.choices[ci];
+  const out = Object.assign({}, c, c.dyn ? c.dyn(S) : {});
+  const pa = S.a, pt = S.t, pn = S.n;
+  S.a = clamp(S.a + (out.a||0));
+  S.t = clamp(S.t + (out.tr||0));
+  S.n += (out.n||0);
+  if(out.set) Object.assign(S.flags, out.set);
+  if(n.q) S.log.push({q:n.q, t:fmt(c.t), g:out.g, c:fmt(out.c||'')});
+  updateHud(pa, pt, pn);
+  let next = out.next || n.next;
+  if(typeof next==='function') next = next(S);
+  S.pending = next;
+  phase = 'result';
+  ui.choices.innerHTML = '';
+  if(out.r){ speak(out.r[0], out.r[1], out.r[2]); }
+  renderCoach(out, S.a-pa, S.t-pt);
+}
+
+function renderCoach(out, da, dt){
+  const s = sc();
+  const gmap = {good:['◎ よい選択','g-good'], ok:['○ 惜しい','g-ok'], bad:['× NG','g-bad']};
+  const [gl, gc] = gmap[out.g] || gmap.ok;
+  const sgn = d => (d>0?'+':'') + d;
+  const delta = (da||dt) ? `${s.meters[0]} ${sgn(da)} ／ ${s.meters[1]} ${sgn(dt)}` : '';
+  const isSingle = node().choices.length===1;
+  const showGrade = s.hide===0 && !isSingle;
+  ui.choices.innerHTML = s.hide>=2 ? '' : `
+   <div class="coach">
+     <div class="head">${showGrade?`<span class="grade ${gc}">${gl}</span><span class="delta">${delta}</span>`:'<span class="tag">女友達の本音</span>'}</div>
+     <p>${esc(fmt(out.c||''))}</p>
+   </div>`;
+  const b = document.createElement('button');
+  b.className='next'; b.type='button'; b.textContent='次へ ▶';
+  b.addEventListener('click', ()=>{ const p=S.pending; S.pending=null; goto(p); });
+  ui.choices.appendChild(b);
+}
+
+function endingScreen(id, n){
+  phase = 'ending';
+  clearInterval(typing); typing=null;
+  const s = sc();
+  saveCleared(s.id, id);
+  const total = Object.values(s.nodes).filter(x=>x.ending).length;
+  const got = (loadCleared()[s.id]||[]).length;
+  const cnt = {good:0,ok:0,bad:0};
+  S.log.forEach(l=>cnt[l.g]=(cnt[l.g]||0)+1);
+  const mk = {good:'◎',ok:'○',bad:'×'};
+  app.innerHTML = `
+  <section class="ending t-${n.tone}">
+    <div class="rank">${s.tier}「${esc(s.title)}」 ― ${n.rank}</div>
+    <h2>${esc(fmt(n.title))}</h2>
+    <div class="story">${n.text.map(p=>`<p>${esc(fmt(p))}</p>`).join('')}</div>
+    <div class="final">
+      <span>${s.meters[0]} <b>${S.a}</b></span><span>${s.meters[1]} <b>${S.t}</b></span>
+      ${s.counter?`<span>${s.counter} <b>${S.n}人</b></span>`:''}
+      <span>◎ <b>${cnt.good}</b>　○ <b>${cnt.ok}</b>　× <b>${cnt.bad}</b></span>
+      <span>エンディング回収 <b>${got}/${total}</b></span>
+    </div>
+    <div class="sec">
+      <h3>答え合わせ</h3>
+      <ul class="report">${S.log.map(l=>`<li><span class="mk ${l.g}">${mk[l.g]}</span><span class="q">${esc(l.q)}</span><span class="c">${esc(l.t)}</span>${l.c?`<span class="why">${esc(l.c)}</span>`:''}</li>`).join('')}</ul>
+    </div>
+    <div class="sec">
+      <h3>このコースのポイント</h3>
+      <ol class="lessons">${s.lessons.map(([h,d])=>`<li><b>${esc(h)}</b>　${esc(d)}</li>`).join('')}</ol>
+    </div>
+    <div class="actions">
+      <button class="btn" type="button" id="again">もう一度プレイ</button>
+      <button class="btn ghost" type="button" id="toTitle">コース選択へ</button>
+    </div>
+  </section>`;
+  document.getElementById('again').addEventListener('click', ()=>{ S = fresh(S.scen, S.name); buildGame(); goto(sc().start); });
+  document.getElementById('toTitle').addEventListener('click', titleScreen);
+  window.scrollTo(0,0);
+}
+
+// keyboard: Enter/Space advance, 1-4 choose
+document.addEventListener('keydown', e=>{
+  if(e.target.tagName==='INPUT') return;
+  if(phase==='choices' && /^[1-4]$/.test(e.key)){
+    const btn = ui.choices.querySelectorAll('.choice')[+e.key-1];
+    if(btn){ e.preventDefault(); btn.click(); }
+  } else if((e.key==='Enter'||e.key===' ') && (phase==='lines'||phase==='result') && e.target.tagName!=='BUTTON'){
+    e.preventDefault();
+    if(phase==='result' && !typing){ const nb = ui.choices.querySelector('.next'); if(nb) nb.click(); }
+    else advance();
+  }
+});
+
+// hot reload: keep progress when the page updates
+window.claude?.hot?.snapshot?.(()=>({S}));
+function start(data){
+  if(data && data.S && data.S.node && data.S.scen && SC[data.S.scen]){
+    S = data.S; buildGame();
+    if(S.pending){ const p=S.pending; S.pending=null; goto(p); } else goto(S.node);
+  } else titleScreen();
+}
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+})();
+</script>
+</body>
+</html>
